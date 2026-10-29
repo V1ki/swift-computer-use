@@ -118,6 +118,21 @@
 4. **输入注入**：优先 AX 语义动作（`AXPress`、`AXValue`、`AXSelectedTextRange`），
    回退到 `CGEvent`（鼠标/键盘/滚动/拖拽）；`paste` 走剪贴板保存/恢复；坐标一律窗口相对 → 全局换算。
 
+### 3.7 懒 AX 与 OCR 回退
+
+并非所有 App 都随时提供 AX 树：
+
+- **懒 AX**：AX 对象在 App 首次前台化时才创建。微信在后台时 `kAXWindowsAttribute` 为空、
+  只有菜单栏；激活后立刻出现完整树（会话列表 / 消息列表 / 输入框 / 发送按钮）。
+  引擎在根节点不是 `AXWindow` 时自动激活目标 App 并重抓，同时对 Chromium/Electron 尝试
+  `AXEnhancedUserInterface` / `AXManualAccessibility`。
+- **无 AX**：自绘 UI、游戏、部分 CEF 壳。`findText` 会退化为「窗口截图 + Vision OCR」，
+  返回窗口相对坐标，再由 `clickText` 走像素点击。
+
+`AXEnablementAssertion`、`SyntheticAppFocusEnforcer`、`VirtualCursor` 是原服务里承担同类职责的
+组件（见 `re/04` / `re/05`）；SwiftCUA 用公开 API 实现了其中「激活 + 开关 + OCR」这条主线，
+不做虚拟光标与合成焦点劫持。
+
 ## 4. 典型调用链
 
 `sky.get_app_state({app: "com.apple.Safari"})`：

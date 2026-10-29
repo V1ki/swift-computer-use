@@ -6,8 +6,8 @@ struct CLIArguments {
     var positionals: [String] = []
     var options: [String: String] = [:]
     var flags: Set<String> = []
-    static let booleanOptions: Set<String> = ["json", "windows", "no-screenshot", "no-text", "help", "version"]
-    static let valueOptions: Set<String> = ["socket", "timeout", "app", "query", "window", "screenshot-out", "out", "display", "element", "x", "y", "count", "button", "key", "duration-ms", "text", "direction", "pages", "value", "from-x", "from-y", "to-x", "to-y", "format", "prefix", "suffix", "selection", "action", "session"]
+    static let booleanOptions: Set<String> = ["json", "windows", "no-screenshot", "no-text", "exact", "no-ocr", "ocr-only", "help", "version"]
+    static let valueOptions: Set<String> = ["socket", "timeout", "app", "query", "window", "screenshot-out", "out", "display", "element", "x", "y", "count", "button", "key", "duration-ms", "text", "direction", "pages", "value", "from-x", "from-y", "to-x", "to-y", "format", "prefix", "suffix", "selection", "action", "session", "limit"]
 
     init(_ arguments: [String]) throws {
         var index = 0
@@ -73,6 +73,8 @@ enum CUACommandLine {
       select-text --app ID --element N --text S [--prefix S] [--suffix S]
                   [--selection text|cursor_before|cursor_after]
       action --app ID --element N --action NAME
+      find-text --app ID --text S [--exact] [--no-ocr] [--ocr-only] [--limit N]
+      click-text --app ID --text S [--exact] [--no-ocr] [--ocr-only]
       call METHOD [JSON-PARAMS]     原始 JSON-RPC 调试透传
       session list                 本地 sessions/*.toml 清单
       doctor                       socket / ping / 权限 / 版本 checklist
@@ -89,7 +91,8 @@ enum CUACommandLine {
         "permissions": "get_permissions", "apps": "list_apps", "windows": "list_windows",
         "state": "get_app_state", "screenshot": "capture_screenshot", "click": "click",
         "press-key": "press_key", "type": "type_text", "scroll": "scroll", "set-value": "set_value",
-        "drag": "drag", "paste": "paste", "select-text": "select_text", "action": "perform_secondary_action"
+        "drag": "drag", "paste": "paste", "select-text": "select_text", "action": "perform_secondary_action",
+        "find-text": "find_text", "click-text": "click_text"
     ]
     private static let optionFields: [String: String] = [
         "app": "app", "window": "windowId", "display": "displayId", "session": "sessionId",
@@ -97,7 +100,7 @@ enum CUACommandLine {
         "key": "key", "duration-ms": "durationMilliseconds", "text": "text", "direction": "direction",
         "pages": "pages", "value": "value", "from-x": "fromX", "from-y": "fromY", "to-x": "toX",
         "to-y": "toY", "format": "format", "prefix": "prefix", "suffix": "suffix", "selection": "selectionType",
-        "action": "action", "query": "query"
+        "action": "action", "query": "query", "limit": "limit"
     ]
 
     static func run(_ arguments: [String]) async -> Int32 {
@@ -177,6 +180,7 @@ enum CUACommandLine {
         if command == "apps" { allowed.insert("windows") }
         if command == "state" { allowed.formUnion(["no-screenshot", "no-text", "screenshot-out"]) }
         if command == "screenshot" { allowed.insert("out"); _ = try args.require("out") }
+        if command == "find-text" || command == "click-text" { allowed.formUnion(["exact", "no-ocr", "ocr-only"]) }
         try args.allow(allowed)
         var params: [String: JSONValue] = [:]
         for (option, field) in optionFields {
@@ -209,6 +213,11 @@ enum CUACommandLine {
         if command == "scroll", (params["x"] == nil) != (params["y"] == nil) {
             throw CLIArguments.invalid("scroll requires --x and --y together")
         }
+        if command == "find-text" || command == "click-text" {
+            params["exact"] = .bool(args.flags.contains("exact"))
+            params["useOCR"] = .bool(!args.flags.contains("no-ocr"))
+            params["ocrOnly"] = .bool(args.flags.contains("ocr-only"))
+        }
         if command == "screenshot", ["app", "windowId", "displayId"].filter({ params[$0] != nil }).count > 1 {
             throw CLIArguments.invalid("screenshot accepts only one of --app, --window, --display")
         }
@@ -231,6 +240,20 @@ enum CUACommandLine {
     private static func printResult(command: String, result: JSONValue) {
         switch command {
         case "permissions": printPermissions(result)
+        case "find-text":
+            let rows = result["matches"]?.arrayValue ?? []
+            if rows.isEmpty { print("No matches") }
+            else {
+                table(headers: ["#", "TEXT", "SOURCE", "RECT"], rows: rows.enumerated().map { index, row in
+                    let rect = row["rect"]
+                    return [String(index), row["text"]?.stringValue ?? "",
+                            row["source"]?.stringValue ?? "",
+                            "\(Int(rect?["x"]?.doubleValue ?? 0)),\(Int(rect?["y"]?.doubleValue ?? 0)) \(Int(rect?["width"]?.doubleValue ?? 0))×\(Int(rect?["height"]?.doubleValue ?? 0))"]
+                })
+            }
+        case "click-text":
+            let match = result["match"]
+            print("Clicked: \(match?["text"]?.stringValue ?? "") [\(match?["source"]?.stringValue ?? "")]")
         case "apps":
             let apps = result["apps"]?.arrayValue ?? []
             table(headers: ["ID", "NAME", "RUNNING", "WINDOWS"], rows: apps.map {

@@ -9,6 +9,12 @@ struct AXSnapshot {
     var truncated: Bool
     var rootTitle: String?
     var rootFrame: CUARect?
+    var rootRole: String?
+
+    /// True when the capture actually started at an AXWindow. Lazy apps such as
+    /// WeChat return the AXApplication element (children = menu bars) until the
+    /// app has been activated at least once.
+    var hasWindowRoot: Bool { rootRole == "AXWindow" || rootRole == "AXSheet" || rootRole == "AXDialog" }
 }
 
 enum AXAccess {
@@ -47,6 +53,49 @@ enum AXAccess {
               point.x.isFinite, point.y.isFinite, dimensions.width.isFinite, dimensions.height.isFinite else { return nil }
         return CUARect(x: point.x, y: point.y, width: dimensions.width, height: dimensions.height)
     }
+    /// Number of AX windows currently exposed by the app.
+    static func windowCount(pid: Int32) -> Int {
+        let app = AXUIElementCreateApplication(pid)
+        AXUIElementSetMessagingTimeout(app, 0.1)
+        return (value(app, kAXWindowsAttribute) as? [AXUIElement])?.count ?? 0
+    }
+
+    /// Chromium/Electron expose an "enhanced" accessibility mode behind these
+    /// attributes; enabling them is the public-API equivalent of what the
+    /// original service does (it keeps an AXEnablementAssertion alive).
+    /// Returns true when a window became visible after enabling.
+    /// Turns on Chromium/Electron accessibility if the app advertises the
+    /// switch. Returns true when at least one switch was present, i.e. the tree
+    /// may grow asynchronously — callers should re-capture and poll.
+    ///
+    /// The setter's return value is deliberately ignored: Electron returns
+    /// -25208 / 0 inconsistently while the attribute still flips.
+    @discardableResult
+    static func enableAccessibilityIfNeeded(pid: Int32) -> Bool {
+        let app = AXUIElementCreateApplication(pid)
+        AXUIElementSetMessagingTimeout(app, 0.15)
+        var names: CFArray?
+        guard AXUIElementCopyAttributeNames(app, &names) == .success,
+              let attributes = names as? [String] else { return false }
+        var attempted = false
+        for flag in ["AXEnhancedUserInterface", "AXManualAccessibility"] where attributes.contains(flag) {
+            attempted = true
+            _ = AXUIElementSetAttributeValue(app, flag as CFString, kCFBooleanTrue)
+            let readBack = (value(app, flag) as? NSNumber)?.boolValue ?? false
+            CUALogger(CUALog.engine).debug("enabling \(flag) for pid \(pid): readBack=\(readBack)")
+        }
+        return attempted
+    }
+
+    /// Frame of the app's main (or focused) window, without a full tree walk.
+    /// Used to pick the right window-server entry instead of "largest window".
+    static func primaryWindowFrame(pid: Int32) -> CUARect? {
+        let app = AXUIElementCreateApplication(pid)
+        AXUIElementSetMessagingTimeout(app, 0.12)
+        let window = element(value(app, kAXMainWindowAttribute)) ?? element(value(app, kAXFocusedWindowAttribute))
+        return window.flatMap { frame($0) }
+    }
+
     static func actions(_ element: AXUIElement) -> [String] {
         var names: CFArray?
         guard AXUIElementCopyActionNames(element, &names) == .success else { return [] }
@@ -105,7 +154,8 @@ final class AccessibilityCapture {
         return AXSnapshot(stamp: IndexStamp(pid: pid, windowID: window?.id, capturedAt: Date()), elements: elements,
                           nodes: node.map { [$0] } ?? [], truncated: truncated,
                           rootTitle: AXAccess.value(root, kAXTitleAttribute) as? String,
-                          rootFrame: AXAccess.frame(root))
+                          rootFrame: AXAccess.frame(root),
+                          rootRole: AXAccess.value(root, kAXRoleAttribute) as? String)
     }
     func visit(_ element: AXUIElement, depth: Int) throws -> CUAAccessibilityNode? {
         guard elements.count < maxNodes, depth <= maxDepth, ProcessInfo.processInfo.systemUptime < deadline else { truncated = true; return nil }

@@ -81,6 +81,8 @@
 | `selectText` | `app`,`elementIndex`,`text` (req)；`prefix?`,`suffix?`,`selectionType?`=`text`\|`cursor_before`\|`cursor_after` | `{}` |
 | `performSecondaryAction` | `app`,`elementIndex`,`action` (req) | `{}` |
 | `captureScreenshot` | `app?` \| `windowId?` \| `displayId?` | `{screenshots:[...]}` |
+| `findText` | `app` (req), `text` (req), `exact?`, `useOCR?`, `ocrOnly?`, `windowId?`, `limit?` | `{matches:[{index?,text,role?,rect,source,confidence?,windowId?}]}` |
+| `clickText` | `app`,`text` (req), `exact?`, `useOCR?`, `ocrOnly?`, `windowId?`, `clickCount?` | `{match:{…}}` |
 | `endSession` | 通知：`sessionId` (req) | 无（不回包） |
 
 ### 元素索引语义
@@ -133,3 +135,26 @@
   并额外提供 cua_repl 风格的 `js` / `js_reset` / `turn_ended`。
 - 原服务的 socket 协议受代码签名对端校验保护，第三方进程无法直接连接（实测连接后立即 EOF）；
   SwiftCUA 的 `--require-peer` 可复现这一行为，但默认关闭以便开发。
+
+## 9. 文本定位（为「无 AX / 懒 AX」应用设计）
+
+`findText` / `clickText` 解决两类没有稳定无障碍树的应用：
+
+1. **懒 AX**：AX 树只在 App 曾前台化后才创建（微信就是这样：未激活时只暴露菜单栏）。
+   `getAppState` 与 `findText` 内部会检测根节点不是 `AXWindow`，自动激活目标 App 并等待
+   ~1.2s 重新抓取；Electron 类应用还会尝试设置 `AXEnhancedUserInterface` /
+   `AXManualAccessibility`（上游有 ~2s debounce，最长轮询 3s）。
+2. **完全无 AX**：AX 树搜不到时（`useOCR` 默认 true），对目标窗口截图并调用 Vision 文字识别，
+   返回窗口相对坐标的文本框。
+
+`CUATextMatch.source` 区分命中来源：
+
+- `ax`：带 `index`，可用后续 `click`/`setValue` 复用索引；
+- `ocr`：只有 `rect` 和 `confidence`，点击走像素路径。
+
+`clickText` 始终点击命中框中心（像素事件）：实测微信侧边栏按钮虽然暴露 `AXPress`，但语义动作
+不会切页，而像素点击可以；因此「按看到的文字去点」走视觉点击更可预测。坐标仍是**窗口内 points**，
+且匹配结果带 `windowId` —— 调用方必须把坐标应用到同一个窗口，否则多窗口/分离窗口应用会把点击
+错位到别的窗口（微信就有一个 1080×1890 的分离窗口）。
+
+`ocrOnly: true` 跳过 AX 查找直接走 OCR，便于验证像素路径或绕开已知错误的 AX 树。

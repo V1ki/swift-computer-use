@@ -136,3 +136,70 @@ Esc 正常清除；聊天输入框未被触碰，**没有发送任何消息**。
    SwiftCUA 的 `capture_screenshot` + `click --x/--y` 已覆盖这条路径。
 2. `click` 的坐标是**窗口内** points，跨 Retina/多显示器由引擎换算成全局坐标，截图返回的 `originX/originY` 可用于反推。
 3. 这类应用上不要依赖 `elementIndex`，会返回 `elementIndexStale`/`elementNotFound`。
+
+## 8. 微信类 App 实测：懒 AX 与像素回退
+
+在用户授权后，用安装版服务对微信做了完整链路验证（微信是最典型的「懒 AX」应用）。
+
+### 8.1 懒 AX：后台读取会触发一次性激活
+
+```bash
+open -a "Google Chrome"                       # 微信退到后台
+cua state --app com.tencent.xinWeChat --no-screenshot
+```
+
+结果：引擎检测到 AX 根不是 `AXWindow`（只有 197 个菜单节点），自动激活微信并重抓，
+得到 **90 行 / 89 节点**的完整树：`list "会话"`（每行一个 `staticText`）、`list "消息"`、
+输入框 `textArea "…"`、`button "发送"`（输入框为空时是 `disabled`）。
+
+> 研究结论见 [re/05](https://github.com/V1ki/swift-computer-use/blob/main/re/05-ax-less-apps.md)：
+> 微信暖启动后即使退到后台 0.8/5/30s 仍能读树；最小化保留，隐藏后窗口枚举归零。
+> 首次激活是**一次性**初始化成本，不是「必须一直前台」。
+
+### 8.2 `AXPress` 不可靠 → 像素点击
+
+微信侧边栏按钮（微信 / 通讯录 / 收藏）虽然暴露 `AXPress`，但调用后页面不切换。
+`clickText` 因此改为**始终点击命中框中心**：
+
+```bash
+cua find-text  --app com.tencent.xinWeChat --text 通讯录
+# 0  通讯录  ax  2,148 56×34
+cua click-text --app com.tencent.xinWeChat --text 通讯录
+# 页面切换：lists ["通讯录"] + 出现 新的朋友 / 群聊 标记
+cua click-text --app com.tencent.xinWeChat --text 微信 --exact
+# 切回：lists ["消息", "会话"]
+```
+
+### 8.3 OCR 路径闭环
+
+`--ocr-only` 强制走视觉定位（微信侧边栏是纯图标，OCR 找不到「通讯录」；搜索框文字可以）：
+
+```bash
+cua find-text  --app com.tencent.xinWeChat --text 搜索 --ocr-only
+# 0  • 搜索  ocr  81,22 40×13  windowId=410  conf=0.30
+cua click-text --app com.tencent.xinWeChat --text 搜索 --ocr-only
+# focusedElement: [64] 搜索  ← 焦点确实进到搜索框
+cua type --app com.tencent.xinWeChat --text swiftcua-ocr
+cua screenshot --window 410 --out /tmp/search-typed.jpg
+cua find-text --app com.tencent.xinWeChat --text swiftcua --ocr-only
+# 0  Swiftcua-ocr|  ocr  94,21 72×11   ← 截图 OCR 反查到刚输入的文字
+cua press-key --app com.tencent.xinWeChat --key Escape   # 清理，输入框无草稿
+```
+
+### 8.4 过程中发现并修掉的两个真问题
+
+1. **「最大窗口」静默替换**：微信当时存在第二个窗口 `微信 (窗口)`（1080×1890，分离窗口）。
+   `screenshot --app` / 坐标点击按面积选窗口会选到它，导致 OCR 坐标落到另一个窗口，
+   一次测试中把测试文字打进了另一个会话的输入框（发现后已用 `set-value ""` 清除，未发送）。
+   修复：优先用 AX 主窗口 frame 反查窗口服务器条目；`CUATextMatch` 带 `windowId`，
+   `clickText` 只用匹配所在窗口的坐标。
+2. **OCR 默认忽略小字号**：Vision 的 `minimumTextHeight` 默认是图高的 1/32（2× 截图约 59px），
+   11–13pt 的 UI 文字全部被丢弃。改为 `0.005` 后能识别工具栏/搜索框等小字。
+
+### 8.5 结论：这类 App 的控制顺序
+
+1. **AX 优先，但要区分「懒创建」和「没有」**：先读，根不是 AXWindow 就有限激活重抓；
+   Electron 再尝试 `AXEnhancedUserInterface` / `AXManualAccessibility` 并轮询内容增长（不是看 setter 返回值）。
+2. **AX 动作不可靠就视觉点击**：按钮有 `AXPress` 不等于它会响应；按「文字/矩形」点击更稳。
+3. **无 AX 区域用截图 + OCR/视觉定位**：坐标必须绑定 `windowId`，并处理 Retina 缩放。
+4. **凡是不可逆动作（发送、支付）先校验状态**；输入框为空时「发送」按钮为 `disabled` 是很好的安全断言。

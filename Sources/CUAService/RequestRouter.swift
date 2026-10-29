@@ -138,6 +138,18 @@ actor RequestRouter {
             try await gate.check(screenRecording: true)
             try Task.checkCancellation()
             return try CUACodec.jsonValue(CaptureScreenshotResult(screenshots: try await engine.captureScreenshot(value)))
+        case .findText:
+            let value = try decode(FindTextParams.self, params, method)
+            try await authorize(params, app: value.app)
+            try await gate.check(accessibility: true, screenRecording: value.useOCR ?? false)
+            try Task.checkCancellation()
+            return try CUACodec.jsonValue(FindTextResult(matches: try await engine.findText(value)))
+        case .clickText:
+            let value = try decode(ClickTextParams.self, params, method)
+            try await authorize(params, app: value.app)
+            try await gate.check(accessibility: true, screenRecording: value.useOCR ?? false)
+            try Task.checkCancellation()
+            return try CUACodec.jsonValue(ClickTextResult(match: try await engine.clickText(value)))
         case .endSession:
             let value = try decode(EndSessionParams.self, params, method)
             try await sessions.endSession(value.sessionId)

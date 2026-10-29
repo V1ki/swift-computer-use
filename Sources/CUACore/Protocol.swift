@@ -103,6 +103,8 @@ public enum CUAMethod: String, Codable, Sendable, CaseIterable {
     case selectText
     case performSecondaryAction
     case captureScreenshot
+    case findText
+    case clickText
     case endSession
 
     /// Notifications are fire-and-forget and carry no id.
@@ -509,4 +511,82 @@ public enum CUACodec {
         let data = try makeEncoder().encode(value)
         return try makeDecoder().decode(T.self, from: data)
     }
+}
+
+// MARK: - Text location params
+
+public struct FindTextParams: Codable, Sendable, Hashable {
+    public var app: String
+    public var sessionId: String?
+    /// Substring to look for; case-insensitive unless `exact` is true.
+    public var text: String
+    public var exact: Bool?
+    /// Allow falling back to on-screen OCR when the AX tree has no match.
+    public var useOCR: Bool?
+    /// Skip the AX lookup entirely and locate by OCR (useful to verify the
+    /// pixel path, or when the AX tree exists but is known to be wrong).
+    public var ocrOnly: Bool?
+    public var windowId: UInt32?
+    public var limit: Int?
+
+    public init(
+        app: String,
+        sessionId: String? = nil,
+        text: String,
+        exact: Bool? = nil,
+        useOCR: Bool? = nil,
+        ocrOnly: Bool? = nil,
+        windowId: UInt32? = nil,
+        limit: Int? = nil
+    ) {
+        self.app = app
+        self.sessionId = sessionId
+        self.text = text
+        self.exact = exact
+        self.useOCR = useOCR
+        self.ocrOnly = ocrOnly
+        self.windowId = windowId
+        self.limit = limit
+    }
+}
+
+public struct FindTextResult: Codable, Sendable, Hashable {
+    public var matches: [CUATextMatch]
+    public init(matches: [CUATextMatch]) { self.matches = matches }
+}
+
+public struct ClickTextParams: Codable, Sendable, Hashable {
+    public var app: String
+    public var sessionId: String?
+    public var text: String
+    public var exact: Bool?
+    public var useOCR: Bool?
+    public var ocrOnly: Bool?
+    public var windowId: UInt32?
+    public var clickCount: Int?
+
+    public init(
+        app: String,
+        sessionId: String? = nil,
+        text: String,
+        exact: Bool? = nil,
+        useOCR: Bool? = nil,
+        ocrOnly: Bool? = nil,
+        windowId: UInt32? = nil,
+        clickCount: Int? = nil
+    ) {
+        self.app = app
+        self.sessionId = sessionId
+        self.text = text
+        self.exact = exact
+        self.useOCR = useOCR
+        self.ocrOnly = ocrOnly
+        self.windowId = windowId
+        self.clickCount = clickCount
+    }
+}
+
+public struct ClickTextResult: Codable, Sendable, Hashable {
+    public var match: CUATextMatch
+    public init(match: CUATextMatch) { self.match = match }
 }

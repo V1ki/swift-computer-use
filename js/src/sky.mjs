@@ -88,6 +88,8 @@ export function createSky({ socketPath, home, autoConnect = true } = {}) {
         text: state.text ?? '', accessibility: state.accessibility ?? null,
       };
     },
+    async find_text(params = {}) { return rpc('findText', params); },
+    async click_text(params = {}) { return rpc('clickText', params); },
     async capture_screenshot(params = {}) {
       const result = await rpc('captureScreenshot', params);
       return (result.screenshots ?? result).map(screenshotInfo);

@@ -101,6 +101,18 @@ enum MCPTools {
         tool("capture_screenshot", .captureScreenshot, "Capture an app, window, or display as data URLs", [
             "app": app, "sessionId": session, "windowId": window,
             "displayId": field("integer", "CGDirectDisplayID", minimum: 0, maximum: Double(UInt32.max))]),
+        tool("find_text", .findText, "Locate on-screen text (accessibility tree first, OCR fallback for AX-less apps)", [
+            "text": text, "exact": field("boolean", "Require an exact match"),
+            "useOCR": field("boolean", "Allow OCR fallback when the AX tree has no match"),
+            "ocrOnly": field("boolean", "Skip the AX tree and locate by OCR"),
+            "limit": field("integer", "Maximum matches", minimum: 1, maximum: 200)],
+            required: ["app", "text"], target: true),
+        tool("click_text", .clickText, "Click the best on-screen text match (AX press first, pixel click fallback)", [
+            "text": text, "exact": field("boolean", "Require an exact match"),
+            "useOCR": field("boolean", "Allow OCR fallback"),
+            "ocrOnly": field("boolean", "Skip the AX tree and click the OCR hit"),
+            "clickCount": field("integer", "Number of clicks", minimum: 1)],
+            required: ["app", "text"], target: true),
         tool("get_permissions", .getPermissions, "Check Screen Recording and Accessibility permissions without prompting")
     ]
 }

@@ -89,3 +89,22 @@ test('截图数组、权限以及手动连接模式', async t => {
   assert.equal((await sky.capture_screenshot({ display_id: 1 }))[0].id, 's');
   assert.equal(fake.requests.at(-1).params.displayId, 1);
 });
+
+test('find_text / click_text 映射到 findText / clickText', async t => {
+  const seen = [];
+  const fake = await fakeServer(t, ({ request, reply }) => {
+    seen.push(request.method);
+    if (request.method === 'ping') return reply({ apiVersion: 'SwiftCUA-IPC-1', sessionId: 'S1' });
+    if (request.method === 'findText') return reply({ matches: [{ text: '通讯录', index: 4, rect: { x: 2, y: 148, width: 56, height: 34 }, source: 'ax' }] });
+    if (request.method === 'clickText') return reply({ match: { text: '通讯录', index: 4, rect: { x: 2, y: 148, width: 56, height: 34 }, source: 'ax' } });
+    return reply({});
+  });
+  const { createSky } = await import('../src/sky.mjs');
+  const sky = createSky({ socketPath: fake.socketPath });
+  t.after(() => sky.close());
+  const found = await sky.find_text({ app: 'com.tencent.xinWeChat', text: '通讯录' });
+  assert.equal(found.matches[0].source, 'ax');
+  const clicked = await sky.click_text({ app: 'com.tencent.xinWeChat', text: '通讯录', exact: false });
+  assert.equal(clicked.match.index, 4);
+  assert.ok(seen.includes('findText') && seen.includes('clickText'));
+});

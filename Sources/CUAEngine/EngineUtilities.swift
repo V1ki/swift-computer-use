@@ -169,3 +169,52 @@ enum TextInput {
         }
     }
 }
+
+/// Pure text-matching helpers shared by AX lookup and OCR fallback.
+enum TextMatch {
+    static func matches(_ haystack: String, query: String, exact: Bool) -> Bool {
+        let needle = query.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !needle.isEmpty else { return false }
+        let hay = haystack.trimmingCharacters(in: .whitespacesAndNewlines)
+        return exact ? hay.compare(needle, options: [.caseInsensitive, .diacriticInsensitive]) == .orderedSame
+                     : hay.range(of: needle, options: [.caseInsensitive, .diacriticInsensitive]) != nil
+    }
+
+    /// Walks the AX tree and returns every node whose visible text contains the query.
+    /// Rects are converted from global to window-relative coordinates.
+    static func tree(_ nodes: [CUAAccessibilityNode], query: String, exact: Bool,
+                     windowOrigin: CUARect?, windowId: UInt32? = nil) -> [CUATextMatch] {
+        var out: [CUATextMatch] = []
+        func visit(_ node: CUAAccessibilityNode) {
+            let text = [node.title, node.value, node.description]
+                .compactMap { $0 }
+                .first { !$0.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
+            if let text, let frame = node.frame, matches(text, query: query, exact: exact) {
+                var rect = frame
+                if let windowOrigin {
+                    rect = CUARect(x: frame.x - windowOrigin.x, y: frame.y - windowOrigin.y,
+                                   width: frame.width, height: frame.height)
+                }
+                out.append(CUATextMatch(index: node.index, text: text, role: node.role, rect: rect,
+                                       source: "ax", windowId: windowId))
+            }
+            node.children.forEach(visit)
+        }
+        nodes.forEach(visit)
+        return out
+    }
+
+    /// Prefer an AX hit with a usable frame; among equals prefer the smallest area
+    /// (leaf labels beat their container groups) and OCR confidence as tiebreak.
+    static func pick(_ matches: [CUATextMatch]) -> CUATextMatch? {
+        let usable = matches.filter { $0.rect.width > 0 && $0.rect.height > 0 }
+        guard !usable.isEmpty else { return matches.first }
+        return usable.min { lhs, rhs in
+            if lhs.source != rhs.source { return lhs.source == "ax" }
+            let lhsArea = lhs.rect.width * lhs.rect.height
+            let rhsArea = rhs.rect.width * rhs.rect.height
+            if abs(lhsArea - rhsArea) > 1 { return lhsArea < rhsArea }
+            return (lhs.confidence ?? 0) > (rhs.confidence ?? 0)
+        }
+    }
+}

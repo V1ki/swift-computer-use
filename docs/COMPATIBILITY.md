@@ -21,6 +21,8 @@ macOS target 的方法基本可以直接跑（见下表），返回值形状保�
 | `select_text({app, elementIndex, text, prefix, suffix, selectionType})` | `selectText` | `cua select-text` | `select_text` |
 | `perform_secondary_action({app, elementIndex, action})` | `performSecondaryAction` | `cua action` | `perform_secondary_action` |
 | —（原 mac 无独立截图 RPC） | `captureScreenshot` | `cua screenshot` | `capture_screenshot` |
+| —（原服务靠 AX 索引/私有路径） | `findText` | `cua find-text` | `find_text` |
+| — | `clickText` | `cua click-text` | `click_text` |
 | —（`ping` 由 transport 内部完成） | `ping` | `cua ping` | — |
 | — | `getPermissions` | `cua permissions` | `get_permissions` |
 | — | `endSession`（通知） | `cua session` | — |

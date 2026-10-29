@@ -305,3 +305,40 @@ public struct CUAServerInfo: Codable, Sendable, Hashable {
         self.sessionId = sessionId
     }
 }
+
+// MARK: - Text location (for AX-less / lazy-AX apps)
+
+/// A text hit either from the accessibility tree or from on-screen OCR.
+public struct CUATextMatch: Codable, Sendable, Hashable {
+    /// Accessibility index when the hit came from the AX tree.
+    public var index: Int?
+    public var text: String
+    public var role: String?
+    /// Window-relative rect in points.
+    public var rect: CUARect
+    /// `ax` or `ocr`.
+    public var source: String
+    /// OCR confidence in 0...1 when `source == "ocr"`.
+    public var confidence: Double?
+    /// Window-server id the rect belongs to. Callers must apply coordinates to
+    /// this window; mixing windows shifts clicks to a detached/secondary window.
+    public var windowId: UInt32?
+
+    public init(
+        index: Int? = nil,
+        text: String,
+        role: String? = nil,
+        rect: CUARect,
+        source: String,
+        confidence: Double? = nil,
+        windowId: UInt32? = nil
+    ) {
+        self.index = index
+        self.text = text
+        self.role = role
+        self.rect = rect
+        self.source = source
+        self.confidence = confidence
+        self.windowId = windowId
+    }
+}

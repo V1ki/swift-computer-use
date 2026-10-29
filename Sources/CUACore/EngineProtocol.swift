@@ -42,6 +42,12 @@ public protocol CUAEngine: Sendable {
     /// Raw screenshot capture outside of `getAppState` (display, window or app).
     func captureScreenshot(_ params: CaptureScreenshotParams) async throws -> [CUAScreenshot]
 
+    /// Locate on-screen text (AX tree first, OCR fallback) for AX-less apps.
+    func findText(_ params: FindTextParams) async throws -> [CUATextMatch]
+
+    /// Click the best text match; returns the hit that was acted on.
+    func clickText(_ params: ClickTextParams) async throws -> CUATextMatch
+
     /// Drops cached per-app state (used by `endSession`).
     func resetSessionState() async
 }
@@ -57,4 +63,14 @@ public extension CUAEngine {
     }
 
     func resetSessionState() async {}
+}
+
+public extension CUAEngine {
+    func findText(_ params: FindTextParams) async throws -> [CUATextMatch] {
+        throw CUAError(code: .unsupported, message: "findText is not implemented by this engine")
+    }
+
+    func clickText(_ params: ClickTextParams) async throws -> CUATextMatch {
+        throw CUAError(code: .unsupported, message: "clickText is not implemented by this engine")
+    }
 }

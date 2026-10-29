@@ -1,0 +1,244 @@
+
+FILE activate-com.alibaba.DingTalkMac.jsonl
+before front=com.google.Chrome active=False hidden=False windows=1 windowNodes=549 appNodes=772 truncated=False E=1 M=nil webAreas=0 CG410=None
+{'accepted': True, 'action': 'activate', 'bundle': 'com.alibaba.DingTalkMac'}
+foreground front=com.alibaba.DingTalkMac active=True hidden=False windows=1 windowNodes=550 appNodes=772 truncated=False E=1 M=nil webAreas=0 CG410=None
+{'accepted': True, 'action': 'activate', 'bundle': 'com.google.Chrome'}
+background-after front=com.google.Chrome active=False hidden=False windows=1 windowNodes=550 appNodes=772 truncated=False E=1 M=nil webAreas=0 CG410=None
+
+FILE activate-com.google.Chrome.jsonl
+before front=com.alibaba.DingTalkMac active=False hidden=False windows=3 windowNodes=1419 appNodes=2017 truncated=True E=1 M=nil webAreas=2 CG410=None
+{'accepted': True, 'action': 'activate', 'bundle': 'com.google.Chrome'}
+foreground front=com.google.Chrome active=True hidden=False windows=3 windowNodes=1421 appNodes=2023 truncated=True E=1 M=nil webAreas=2 CG410=None
+{'accepted': True, 'action': 'activate', 'bundle': 'com.google.Chrome'}
+background-after front=com.google.Chrome active=True hidden=False windows=3 windowNodes=1423 appNodes=2025 truncated=True E=1 M=nil webAreas=2 CG410=None
+
+FILE activate-com.openai.codex.jsonl
+before front=com.tencent.xinWeChat active=False hidden=False windows=1 windowNodes=1322 appNodes=1554 truncated=True E=1 M=nil webAreas=1 CG410=None
+{'accepted': True, 'action': 'activate', 'bundle': 'com.openai.codex'}
+foreground front=com.openai.codex active=True hidden=False windows=1 windowNodes=1323 appNodes=1562 truncated=True E=1 M=nil webAreas=1 CG410=None
+{'accepted': True, 'action': 'activate', 'bundle': 'com.google.Chrome'}
+background-after front=com.google.Chrome active=False hidden=False windows=1 windowNodes=1323 appNodes=1557 truncated=True E=1 M=nil webAreas=1 CG410=None
+
+FILE activate-com.tencent.QQMusicMac.jsonl
+before front=com.google.Chrome active=False hidden=False windows=0 windowNodes=0 appNodes=185 truncated=False E=0 M=nil webAreas=0 CG410=None
+{'accepted': True, 'action': 'activate', 'bundle': 'com.tencent.QQMusicMac'}
+foreground front=com.tencent.QQMusicMac active=True hidden=False windows=0 windowNodes=0 appNodes=185 truncated=False E=0 M=nil webAreas=0 CG410=None
+{'accepted': True, 'action': 'activate', 'bundle': 'com.google.Chrome'}
+background-after front=com.google.Chrome active=False hidden=False windows=0 windowNodes=0 appNodes=185 truncated=False E=0 M=nil webAreas=0 CG410=None
+
+FILE activate-com.todesktop.230313mzl4w4u92.jsonl
+before front=com.tencent.xinWeChat active=False hidden=False windows=1 windowNodes=12 appNodes=806 truncated=True E=0 M=0 webAreas=0 CG410=None
+{'accepted': True, 'action': 'activate', 'bundle': 'com.todesktop.230313mzl4w4u92'}
+foreground front=com.todesktop.230313mzl4w4u92 active=True hidden=False windows=1 windowNodes=550 appNodes=815 truncated=True E=0 M=0 webAreas=1 CG410=None
+{'accepted': True, 'action': 'activate', 'bundle': 'com.google.Chrome'}
+background-after front=com.alibaba.DingTalkMac active=False hidden=False windows=1 windowNodes=550 appNodes=807 truncated=True E=0 M=0 webAreas=1 CG410=None
+
+FILE activate-md.obsidian.jsonl
+before front=com.google.Chrome active=False hidden=False windows=1 windowNodes=9 appNodes=967 truncated=False E=0 M=0 webAreas=0 CG410=None
+{'accepted': True, 'action': 'activate', 'bundle': 'md.obsidian'}
+foreground front=md.obsidian active=True hidden=False windows=1 windowNodes=671 appNodes=968 truncated=False E=0 M=0 webAreas=1 CG410=None
+{'accepted': True, 'action': 'activate', 'bundle': 'com.google.Chrome'}
+background-after front=com.google.Chrome active=False hidden=False windows=1 windowNodes=671 appNodes=968 truncated=False E=0 M=0 webAreas=1 CG410=None
+
+FILE switches-com.alibaba.DingTalkMac.jsonl
+switch-baseline front=com.google.Chrome active=False hidden=False windows=1 windowNodes=550 appNodes=772 truncated=False E=1 M=nil webAreas=0 CG410=None
+{'action': 'set-true', 'error': -25208, 'key': 'AXEnhancedUserInterface'}
+AXEnhancedUserInterface-immediate front=com.google.Chrome active=False hidden=False windows=1 windowNodes=550 appNodes=772 truncated=False E=1 M=nil webAreas=0 CG410=None
+AXEnhancedUserInterface-200ms front=com.alibaba.DingTalkMac active=True hidden=False windows=1 windowNodes=550 appNodes=772 truncated=False E=1 M=nil webAreas=0 CG410=None
+AXEnhancedUserInterface-1200ms front=com.alibaba.DingTalkMac active=True hidden=False windows=1 windowNodes=550 appNodes=772 truncated=False E=1 M=nil webAreas=0 CG410=None
+{'accepted': True, 'action': 'activate', 'bundle': 'com.alibaba.DingTalkMac'}
+AXEnhancedUserInterface-foreground front=com.alibaba.DingTalkMac active=True hidden=False windows=1 windowNodes=550 appNodes=772 truncated=False E=1 M=nil webAreas=0 CG410=None
+{'accepted': True, 'action': 'activate', 'bundle': 'com.google.Chrome'}
+AXEnhancedUserInterface-background-2s front=com.todesktop.230313mzl4w4u92 active=False hidden=False windows=1 windowNodes=550 appNodes=772 truncated=False E=1 M=nil webAreas=0 CG410=None
+{'action': 'restore-switch', 'error': -25208, 'key': 'AXEnhancedUserInterface'}
+AXEnhancedUserInterface-restored front=com.alibaba.DingTalkMac active=True hidden=False windows=1 windowNodes=550 appNodes=772 truncated=False E=1 M=nil webAreas=0 CG410=None
+{'error': -25205, 'reason': 'no restorable Boolean', 'skip': 'AXManualAccessibility'}
+{'accepted': True, 'action': 'activate', 'bundle': 'com.google.Chrome'}
+
+FILE switches-com.google.Chrome.jsonl
+switch-baseline front=com.google.Chrome active=True hidden=False windows=3 windowNodes=1424 appNodes=2026 truncated=True E=1 M=nil webAreas=2 CG410=None
+{'action': 'set-true', 'error': -25208, 'key': 'AXEnhancedUserInterface'}
+AXEnhancedUserInterface-immediate front=com.google.Chrome active=True hidden=False windows=3 windowNodes=1424 appNodes=2025 truncated=True E=1 M=nil webAreas=2 CG410=None
+AXEnhancedUserInterface-200ms front=com.google.Chrome active=True hidden=False windows=3 windowNodes=1423 appNodes=2025 truncated=True E=1 M=nil webAreas=2 CG410=None
+AXEnhancedUserInterface-1200ms front=com.google.Chrome active=True hidden=False windows=3 windowNodes=1423 appNodes=2025 truncated=True E=1 M=nil webAreas=2 CG410=None
+{'accepted': True, 'action': 'activate', 'bundle': 'com.google.Chrome'}
+AXEnhancedUserInterface-foreground front=com.google.Chrome active=True hidden=False windows=3 windowNodes=1425 appNodes=2027 truncated=True E=1 M=nil webAreas=2 CG410=None
+{'accepted': True, 'action': 'activate', 'bundle': 'com.google.Chrome'}
+AXEnhancedUserInterface-background-2s front=com.google.Chrome active=True hidden=False windows=3 windowNodes=1425 appNodes=2029 truncated=True E=1 M=nil webAreas=2 CG410=None
+{'action': 'restore-switch', 'error': -25208, 'key': 'AXEnhancedUserInterface'}
+AXEnhancedUserInterface-restored front=com.google.Chrome active=True hidden=False windows=3 windowNodes=1427 appNodes=2029 truncated=True E=1 M=nil webAreas=2 CG410=None
+{'error': -25205, 'reason': 'no restorable Boolean', 'skip': 'AXManualAccessibility'}
+{'accepted': True, 'action': 'activate', 'bundle': 'com.google.Chrome'}
+
+FILE switches-com.openai.codex.jsonl
+switch-baseline front=com.google.Chrome active=False hidden=False windows=1 windowNodes=1323 appNodes=1557 truncated=True E=1 M=nil webAreas=1 CG410=None
+{'action': 'set-true', 'error': -25208, 'key': 'AXEnhancedUserInterface'}
+AXEnhancedUserInterface-immediate front=com.google.Chrome active=False hidden=False windows=1 windowNodes=1323 appNodes=1557 truncated=True E=1 M=nil webAreas=1 CG410=None
+AXEnhancedUserInterface-200ms front=com.google.Chrome active=False hidden=False windows=1 windowNodes=1323 appNodes=1557 truncated=True E=1 M=nil webAreas=1 CG410=None
+AXEnhancedUserInterface-1200ms front=com.google.Chrome active=False hidden=False windows=1 windowNodes=1323 appNodes=1557 truncated=True E=1 M=nil webAreas=1 CG410=None
+{'accepted': True, 'action': 'activate', 'bundle': 'com.openai.codex'}
+AXEnhancedUserInterface-foreground front=com.openai.codex active=True hidden=False windows=1 windowNodes=1323 appNodes=1562 truncated=True E=1 M=nil webAreas=1 CG410=None
+{'accepted': True, 'action': 'activate', 'bundle': 'com.google.Chrome'}
+AXEnhancedUserInterface-background-2s front=com.google.Chrome active=False hidden=False windows=1 windowNodes=1323 appNodes=1557 truncated=True E=1 M=nil webAreas=1 CG410=None
+{'action': 'restore-switch', 'error': -25208, 'key': 'AXEnhancedUserInterface'}
+AXEnhancedUserInterface-restored front=com.google.Chrome active=False hidden=False windows=1 windowNodes=1323 appNodes=1557 truncated=True E=1 M=nil webAreas=1 CG410=None
+{'error': -25205, 'reason': 'no restorable Boolean', 'skip': 'AXManualAccessibility'}
+{'accepted': True, 'action': 'activate', 'bundle': 'com.google.Chrome'}
+
+FILE switches-com.tencent.QQMusicMac.jsonl
+switch-baseline front=com.google.Chrome active=False hidden=False windows=0 windowNodes=0 appNodes=185 truncated=False E=0 M=nil webAreas=0 CG410=None
+{'action': 'set-true', 'error': -25208, 'key': 'AXEnhancedUserInterface'}
+AXEnhancedUserInterface-immediate front=com.google.Chrome active=False hidden=False windows=0 windowNodes=0 appNodes=185 truncated=False E=1 M=nil webAreas=0 CG410=None
+AXEnhancedUserInterface-200ms front=com.google.Chrome active=False hidden=False windows=0 windowNodes=0 appNodes=185 truncated=False E=1 M=nil webAreas=0 CG410=None
+AXEnhancedUserInterface-1200ms front=com.google.Chrome active=False hidden=False windows=0 windowNodes=0 appNodes=185 truncated=False E=1 M=nil webAreas=0 CG410=None
+{'accepted': True, 'action': 'activate', 'bundle': 'com.tencent.QQMusicMac'}
+AXEnhancedUserInterface-foreground front=com.tencent.QQMusicMac active=True hidden=False windows=0 windowNodes=0 appNodes=185 truncated=False E=1 M=nil webAreas=0 CG410=None
+{'accepted': True, 'action': 'activate', 'bundle': 'com.google.Chrome'}
+AXEnhancedUserInterface-background-2s front=com.todesktop.230313mzl4w4u92 active=False hidden=False windows=0 windowNodes=0 appNodes=185 truncated=False E=1 M=nil webAreas=0 CG410=None
+{'action': 'restore-switch', 'error': -25208, 'key': 'AXEnhancedUserInterface'}
+AXEnhancedUserInterface-restored front=com.todesktop.230313mzl4w4u92 active=False hidden=False windows=0 windowNodes=0 appNodes=185 truncated=False E=0 M=nil webAreas=0 CG410=None
+{'error': -25205, 'reason': 'no restorable Boolean', 'skip': 'AXManualAccessibility'}
+{'accepted': True, 'action': 'activate', 'bundle': 'com.google.Chrome'}
+
+FILE switches-com.todesktop.230313mzl4w4u92.jsonl
+switch-baseline front=com.alibaba.DingTalkMac active=False hidden=False windows=1 windowNodes=550 appNodes=807 truncated=True E=0 M=0 webAreas=1 CG410=None
+{'action': 'set-true', 'error': -25208, 'key': 'AXEnhancedUserInterface'}
+AXEnhancedUserInterface-immediate front=com.alibaba.DingTalkMac active=False hidden=False windows=1 windowNodes=550 appNodes=807 truncated=True E=1 M=0 webAreas=1 CG410=None
+AXEnhancedUserInterface-200ms front=com.alibaba.DingTalkMac active=False hidden=False windows=1 windowNodes=550 appNodes=807 truncated=True E=1 M=0 webAreas=1 CG410=None
+AXEnhancedUserInterface-1200ms front=com.alibaba.DingTalkMac active=False hidden=False windows=1 windowNodes=550 appNodes=807 truncated=True E=1 M=0 webAreas=1 CG410=None
+{'accepted': True, 'action': 'activate', 'bundle': 'com.todesktop.230313mzl4w4u92'}
+AXEnhancedUserInterface-foreground front=com.todesktop.230313mzl4w4u92 active=True hidden=False windows=1 windowNodes=575 appNodes=835 truncated=True E=1 M=0 webAreas=1 CG410=None
+{'accepted': True, 'action': 'activate', 'bundle': 'com.google.Chrome'}
+AXEnhancedUserInterface-background-2s front=com.google.Chrome active=False hidden=False windows=1 windowNodes=575 appNodes=827 truncated=True E=1 M=0 webAreas=1 CG410=None
+{'action': 'restore-switch', 'error': -25208, 'key': 'AXEnhancedUserInterface'}
+AXEnhancedUserInterface-restored front=com.google.Chrome active=False hidden=False windows=1 windowNodes=560 appNodes=817 truncated=True E=0 M=0 webAreas=1 CG410=None
+{'action': 'set-true', 'error': 0, 'key': 'AXManualAccessibility'}
+AXManualAccessibility-immediate front=com.google.Chrome active=False hidden=False windows=1 windowNodes=560 appNodes=817 truncated=True E=0 M=0 webAreas=1 CG410=None
+AXManualAccessibility-200ms front=com.google.Chrome active=False hidden=False windows=1 windowNodes=560 appNodes=817 truncated=True E=0 M=0 webAreas=1 CG410=None
+AXManualAccessibility-1200ms front=com.google.Chrome active=False hidden=False windows=1 windowNodes=560 appNodes=817 truncated=True E=0 M=0 webAreas=1 CG410=None
+{'accepted': True, 'action': 'activate', 'bundle': 'com.todesktop.230313mzl4w4u92'}
+AXManualAccessibility-foreground front=com.todesktop.230313mzl4w4u92 active=True hidden=False windows=1 windowNodes=575 appNodes=835 truncated=True E=0 M=0 webAreas=1 CG410=None
+{'accepted': True, 'action': 'activate', 'bundle': 'com.google.Chrome'}
+AXManualAccessibility-background-2s front=com.google.Chrome active=False hidden=False windows=1 windowNodes=575 appNodes=827 truncated=True E=0 M=0 webAreas=1 CG410=None
+{'action': 'restore-switch', 'error': 0, 'key': 'AXManualAccessibility'}
+AXManualAccessibility-restored front=com.google.Chrome active=False hidden=False windows=1 windowNodes=560 appNodes=817 truncated=True E=0 M=0 webAreas=1 CG410=None
+{'accepted': True, 'action': 'activate', 'bundle': 'com.google.Chrome'}
+
+FILE switches-md.obsidian.jsonl
+switch-baseline front=com.google.Chrome active=False hidden=False windows=1 windowNodes=671 appNodes=968 truncated=False E=0 M=0 webAreas=1 CG410=None
+{'action': 'set-true', 'error': -25208, 'key': 'AXEnhancedUserInterface'}
+AXEnhancedUserInterface-immediate front=com.google.Chrome active=False hidden=False windows=1 windowNodes=672 appNodes=969 truncated=False E=1 M=1 webAreas=1 CG410=None
+AXEnhancedUserInterface-200ms front=com.google.Chrome active=False hidden=False windows=1 windowNodes=672 appNodes=969 truncated=False E=1 M=1 webAreas=1 CG410=None
+AXEnhancedUserInterface-1200ms front=com.google.Chrome active=False hidden=False windows=1 windowNodes=672 appNodes=969 truncated=False E=1 M=1 webAreas=1 CG410=None
+{'accepted': True, 'action': 'activate', 'bundle': 'md.obsidian'}
+AXEnhancedUserInterface-foreground front=md.obsidian active=True hidden=False windows=1 windowNodes=672 appNodes=969 truncated=False E=1 M=1 webAreas=1 CG410=None
+{'accepted': True, 'action': 'activate', 'bundle': 'com.google.Chrome'}
+AXEnhancedUserInterface-background-2s front=com.alibaba.DingTalkMac active=False hidden=False windows=1 windowNodes=672 appNodes=969 truncated=False E=1 M=1 webAreas=1 CG410=None
+{'action': 'restore-switch', 'error': -25208, 'key': 'AXEnhancedUserInterface'}
+AXEnhancedUserInterface-restored front=com.alibaba.DingTalkMac active=False hidden=False windows=1 windowNodes=10 appNodes=968 truncated=False E=0 M=0 webAreas=0 CG410=None
+{'action': 'set-true', 'error': 0, 'key': 'AXManualAccessibility'}
+AXManualAccessibility-immediate front=com.alibaba.DingTalkMac active=False hidden=False windows=1 windowNodes=672 appNodes=969 truncated=False E=0 M=1 webAreas=1 CG410=None
+AXManualAccessibility-200ms front=com.alibaba.DingTalkMac active=False hidden=False windows=1 windowNodes=672 appNodes=969 truncated=False E=0 M=1 webAreas=1 CG410=None
+AXManualAccessibility-1200ms front=com.alibaba.DingTalkMac active=False hidden=False windows=1 windowNodes=672 appNodes=969 truncated=False E=0 M=1 webAreas=1 CG410=None
+{'accepted': True, 'action': 'activate', 'bundle': 'md.obsidian'}
+AXManualAccessibility-foreground front=com.tencent.xinWeChat active=False hidden=False windows=1 windowNodes=672 appNodes=969 truncated=False E=0 M=1 webAreas=1 CG410=None
+{'accepted': True, 'action': 'activate', 'bundle': 'com.google.Chrome'}
+AXManualAccessibility-background-2s front=com.google.Chrome active=False hidden=False windows=1 windowNodes=672 appNodes=969 truncated=False E=0 M=1 webAreas=1 CG410=None
+{'action': 'restore-switch', 'error': 0, 'key': 'AXManualAccessibility'}
+AXManualAccessibility-restored front=com.google.Chrome active=False hidden=False windows=1 windowNodes=10 appNodes=968 truncated=False E=0 M=0 webAreas=0 CG410=None
+{'accepted': True, 'action': 'activate', 'bundle': 'com.google.Chrome'}
+
+FILE timing-cursor.jsonl
+timing-baseline front=com.apple.systempreferences active=False hidden=False windows=1 windowNodes=12 appNodes=751 truncated=True E=0 M=0 webAreas=0 CG410=None
+{'action': 'set-true', 'error': 0, 'key': 'AXManualAccessibility'}
+at-0.000s front=com.apple.systempreferences active=False hidden=False windows=1 windowNodes=540 appNodes=752 truncated=True E=0 M=0 webAreas=1 CG410=None
+at-0.101s front=com.apple.systempreferences active=False hidden=False windows=1 windowNodes=541 appNodes=752 truncated=True E=0 M=0 webAreas=1 CG410=None
+at-0.301s front=com.apple.systempreferences active=False hidden=False windows=1 windowNodes=541 appNodes=752 truncated=True E=0 M=0 webAreas=1 CG410=None
+at-0.604s front=com.apple.systempreferences active=False hidden=False windows=1 windowNodes=541 appNodes=752 truncated=True E=0 M=0 webAreas=1 CG410=None
+at-1.204s front=com.apple.systempreferences active=False hidden=False windows=1 windowNodes=541 appNodes=752 truncated=True E=0 M=0 webAreas=1 CG410=None
+at-1.805s front=com.openai.codex active=False hidden=False windows=1 windowNodes=541 appNodes=752 truncated=True E=0 M=0 webAreas=1 CG410=None
+at-2.105s front=com.openai.codex active=False hidden=False windows=1 windowNodes=566 appNodes=773 truncated=True E=0 M=0 webAreas=1 CG410=None
+at-2.504s front=com.openai.codex active=False hidden=False windows=1 windowNodes=566 appNodes=773 truncated=True E=0 M=0 webAreas=1 CG410=None
+at-3.204s front=com.openai.codex active=False hidden=False windows=1 windowNodes=566 appNodes=773 truncated=True E=0 M=0 webAreas=1 CG410=None
+{'action': 'restore-switch', 'error': 0, 'key': 'AXManualAccessibility'}
+timing-restored front=com.openai.codex active=False hidden=False windows=1 windowNodes=551 appNodes=762 truncated=True E=0 M=0 webAreas=1 CG410=None
+
+FILE timing-obsidian.jsonl
+timing-baseline front=com.openai.codex active=False hidden=False windows=1 windowNodes=670 appNodes=968 truncated=False E=0 M=0 webAreas=1 CG410=None
+{'action': 'set-true', 'error': 0, 'key': 'AXManualAccessibility'}
+at-0.000s front=com.openai.codex active=False hidden=False windows=1 windowNodes=672 appNodes=969 truncated=False E=0 M=1 webAreas=1 CG410=None
+at-0.105s front=com.openai.codex active=False hidden=False windows=1 windowNodes=672 appNodes=969 truncated=False E=0 M=1 webAreas=1 CG410=None
+at-0.301s front=com.openai.codex active=False hidden=False windows=1 windowNodes=672 appNodes=969 truncated=False E=0 M=1 webAreas=1 CG410=None
+at-0.604s front=com.openai.codex active=False hidden=False windows=1 windowNodes=672 appNodes=969 truncated=False E=0 M=1 webAreas=1 CG410=None
+at-1.205s front=com.openai.codex active=False hidden=False windows=1 windowNodes=672 appNodes=969 truncated=False E=0 M=1 webAreas=1 CG410=None
+at-1.804s front=com.openai.codex active=False hidden=False windows=1 windowNodes=672 appNodes=969 truncated=False E=0 M=1 webAreas=1 CG410=None
+at-2.105s front=com.openai.codex active=False hidden=False windows=1 windowNodes=672 appNodes=969 truncated=False E=0 M=1 webAreas=1 CG410=None
+at-2.505s front=com.openai.codex active=False hidden=False windows=1 windowNodes=672 appNodes=969 truncated=False E=0 M=1 webAreas=1 CG410=None
+at-3.204s front=com.openai.codex active=False hidden=False windows=1 windowNodes=672 appNodes=969 truncated=False E=0 M=1 webAreas=1 CG410=None
+{'action': 'restore-switch', 'error': 0, 'key': 'AXManualAccessibility'}
+timing-restored front=com.openai.codex active=False hidden=False windows=1 windowNodes=10 appNodes=968 truncated=False E=0 M=0 webAreas=0 CG410=None
+
+FILE visual-menu-obsidian-initialized.jsonl
+{'bundle': 'md.obsidian', 'menuNodes': 296, 'shortcuts': [{'char': 'R', 'modifiers': 28, 'virtualKey': -1}, {'char': 'C', 'modifiers': 28, 'virtualKey': -1}, {'char': 'F', 'modifiers': 28, 'virtualKey': -1}, {'char': 'M', 'modifiers': 2, 'virtualKey': -1}, {'char': 'M', 'modifiers': 0, 'virtualKey': -1}, {'char': 'F', 'modifiers': 24, 'virtualKey': -1}, {'char': 'I', 'modifiers': 2, 'virtualKey': -1}, {'char': '-', 'modifiers': 0, 'virtualKey': -1}, {'char': '=', 'modifiers': 0, 'virtualKey': -1}, {'char': '0', 'modifiers': 0, 'virtualKey': -1}, {'char': '\uf703', 'modifiers': 2, 'virtualKey': 124}, {'char': '\uf702', 'modifiers': 2, 'virtualKey': 123}, {'char': 'E', 'modifiers': 0, 'virtualKey': -1}, {'char': '/', 'modifiers': 0, 'virtualKey': -1}, {'char': 'I', 'modifiers': 0, 'virtualKey': -1}, {'char': 'B', 'modifiers': 0, 'virtualKey': -1}, {'char': 'L', 'modifiers': 0, 'virtualKey': -1}, {'char': 'K', 'modifiers': 0, 'virtualKey': -1}, {'char': 'E', 'modifiers': 24, 'virtualKey': -1}, {'char': '🎤', 'modifiers': 8, 'virtualKey': 128}, {'char': 'F', 'modifiers': 2, 'virtualKey': -1}, {'char': 'F', 'modifiers': 0, 'virtualKey': -1}, {'char': 'A', 'modifiers': 0, 'virtualKey': -1}, {'char': 'V', 'modifiers': 1, 'virtualKey': -1}, {'char': 'V', 'modifiers': 0, 'virtualKey': -1}, {'char': 'C', 'modifiers': 0, 'virtualKey': -1}, {'char': 'X', 'modifiers': 0, 'virtualKey': -1}, {'char': 'Z', 'modifiers': 1, 'virtualKey': -1}, {'char': 'Z', 'modifiers': 0, 'virtualKey': -1}, {'char': 'W', 'modifiers': 1, 'virtualKey': -1}, {'char': 'W', 'modifiers': 0, 'virtualKey': -1}, {'char': 'O', 'modifiers': 0, 'virtualKey': -1}, {'char': 'T', 'modifiers': 0, 'virtualKey': -1}, {'char': 'N', 'modifiers': 1, 'virtualKey': -1}, {'char': 'N', 'modifiers': 0, 'virtualKey': -1}, {'char': 'Q', 'modifiers': 0, 'virtualKey': -1}, {'char': 'H', 'modifiers': 2, 'virtualKey': -1}, {'char': 'H', 'modifiers': 0, 'virtualKey': -1}, {'char': ',', 'modifiers': 0, 'virtualKey': -1}, {'char': 'Q', 'modifiers': 3, 'virtualKey': -1}, {'char': 'Q', 'modifiers': 1, 'virtualKey': -1}, {'char': 'Q', 'modifiers': 4, 'virtualKey': -1}, {'char': '⎋', 'modifiers': 3, 'virtualKey': 53}, {'char': '⎋', 'modifiers': 2, 'virtualKey': 53}]}
+{'bundle': 'md.obsidian', 'confidentBoxes': 7, 'frame': [0, 33, 1512, 949], 'OCRboxes': 82, 'OCRseconds': 14.02151608467102, 'pixels': [3024, 1898], 'storage': 'memory-only-no-image-or-text-written', 'windowID': 186}
+
+FILE visual-menu-obsidian.jsonl
+{'bundle': 'md.obsidian', 'menuNodes': 296, 'shortcuts': [{'char': 'R', 'modifiers': 28, 'virtualKey': -1}, {'char': 'C', 'modifiers': 28, 'virtualKey': -1}, {'char': 'F', 'modifiers': 28, 'virtualKey': -1}, {'char': 'M', 'modifiers': 2, 'virtualKey': -1}, {'char': 'M', 'modifiers': 0, 'virtualKey': -1}, {'char': 'F', 'modifiers': 24, 'virtualKey': -1}, {'char': 'I', 'modifiers': 2, 'virtualKey': -1}, {'char': '-', 'modifiers': 0, 'virtualKey': -1}, {'char': '=', 'modifiers': 0, 'virtualKey': -1}, {'char': '0', 'modifiers': 0, 'virtualKey': -1}, {'char': '\uf703', 'modifiers': 2, 'virtualKey': 124}, {'char': '\uf702', 'modifiers': 2, 'virtualKey': 123}, {'char': 'E', 'modifiers': 0, 'virtualKey': -1}, {'char': '/', 'modifiers': 0, 'virtualKey': -1}, {'char': 'I', 'modifiers': 0, 'virtualKey': -1}, {'char': 'B', 'modifiers': 0, 'virtualKey': -1}, {'char': 'L', 'modifiers': 0, 'virtualKey': -1}, {'char': 'K', 'modifiers': 0, 'virtualKey': -1}, {'char': 'E', 'modifiers': 24, 'virtualKey': -1}, {'char': '🎤', 'modifiers': 8, 'virtualKey': 128}, {'char': 'F', 'modifiers': 2, 'virtualKey': -1}, {'char': 'F', 'modifiers': 0, 'virtualKey': -1}, {'char': 'A', 'modifiers': 0, 'virtualKey': -1}, {'char': 'V', 'modifiers': 1, 'virtualKey': -1}, {'char': 'V', 'modifiers': 0, 'virtualKey': -1}, {'char': 'C', 'modifiers': 0, 'virtualKey': -1}, {'char': 'X', 'modifiers': 0, 'virtualKey': -1}, {'char': 'Z', 'modifiers': 1, 'virtualKey': -1}, {'char': 'Z', 'modifiers': 0, 'virtualKey': -1}, {'char': 'W', 'modifiers': 1, 'virtualKey': -1}, {'char': 'W', 'modifiers': 0, 'virtualKey': -1}, {'char': 'O', 'modifiers': 0, 'virtualKey': -1}, {'char': 'T', 'modifiers': 0, 'virtualKey': -1}, {'char': 'N', 'modifiers': 1, 'virtualKey': -1}, {'char': 'N', 'modifiers': 0, 'virtualKey': -1}, {'char': 'Q', 'modifiers': 0, 'virtualKey': -1}, {'char': 'H', 'modifiers': 2, 'virtualKey': -1}, {'char': 'H', 'modifiers': 0, 'virtualKey': -1}, {'char': ',', 'modifiers': 0, 'virtualKey': -1}, {'char': 'Q', 'modifiers': 3, 'virtualKey': -1}, {'char': 'Q', 'modifiers': 1, 'virtualKey': -1}, {'char': 'Q', 'modifiers': 4, 'virtualKey': -1}, {'char': '⎋', 'modifiers': 3, 'virtualKey': 53}, {'char': '⎋', 'modifiers': 2, 'virtualKey': 53}]}
+
+FILE visual-menu-wechat-410.jsonl
+{'bundle': 'com.tencent.xinWeChat', 'menuNodes': 203, 'shortcuts': [{'char': '4', 'modifiers': 0, 'virtualKey': -1}, {'char': '3', 'modifiers': 0, 'virtualKey': -1}, {'char': '2', 'modifiers': 0, 'virtualKey': -1}, {'char': '1', 'modifiers': 0, 'virtualKey': -1}, {'char': 'M', 'modifiers': 0, 'virtualKey': -1}, {'char': 'R', 'modifiers': 28, 'virtualKey': -1}, {'char': 'C', 'modifiers': 28, 'virtualKey': -1}, {'char': 'F', 'modifiers': 28, 'virtualKey': -1}, {'char': 'F', 'modifiers': 24, 'virtualKey': -1}, {'char': '-', 'modifiers': 0, 'virtualKey': -1}, {'char': '+', 'modifiers': 0, 'virtualKey': -1}, {'char': '\uf701', 'modifiers': 2, 'virtualKey': 125}, {'char': '\uf700', 'modifiers': 10, 'virtualKey': 126}, {'char': '\uf701', 'modifiers': 10, 'virtualKey': 125}, {'char': 'E', 'modifiers': 24, 'virtualKey': -1}, {'char': '🎤', 'modifiers': 8, 'virtualKey': 128}, {'char': 'F', 'modifiers': 0, 'virtualKey': -1}, {'char': '\x08', 'modifiers': 8, 'virtualKey': 51}, {'char': 'V', 'modifiers': 0, 'virtualKey': -1}, {'char': 'C', 'modifiers': 0, 'virtualKey': -1}, {'char': 'X', 'modifiers': 0, 'virtualKey': -1}, {'char': 'Z', 'modifiers': 1, 'virtualKey': -1}, {'char': 'Z', 'modifiers': 0, 'virtualKey': -1}, {'char': 'A', 'modifiers': 0, 'virtualKey': -1}, {'char': 'W', 'modifiers': 0, 'virtualKey': -1}, {'char': 'M', 'modifiers': 1, 'virtualKey': -1}, {'char': 'T', 'modifiers': 1, 'virtualKey': -1}, {'char': 'D', 'modifiers': 3, 'virtualKey': -1}, {'char': 'N', 'modifiers': 0, 'virtualKey': -1}, {'char': 'Q', 'modifiers': 2, 'virtualKey': -1}, {'char': 'Q', 'modifiers': 0, 'virtualKey': -1}, {'char': 'H', 'modifiers': 2, 'virtualKey': -1}, {'char': 'H', 'modifiers': 0, 'virtualKey': -1}, {'char': 'L', 'modifiers': 0, 'virtualKey': -1}, {'char': ',', 'modifiers': 0, 'virtualKey': -1}, {'char': 'I', 'modifiers': 0, 'virtualKey': -1}, {'char': 'Q', 'modifiers': 3, 'virtualKey': -1}, {'char': 'Q', 'modifiers': 1, 'virtualKey': -1}, {'char': 'Q', 'modifiers': 4, 'virtualKey': -1}, {'char': '⎋', 'modifiers': 3, 'virtualKey': 53}, {'char': '⎋', 'modifiers': 2, 'virtualKey': 53}]}
+{'bundle': 'com.tencent.xinWeChat', 'confidentBoxes': 15, 'frame': [0, 33, 1512, 949], 'OCRboxes': 61, 'OCRseconds': 0.40143299102783203, 'pixels': [3024, 1898], 'storage': 'memory-only-no-image-or-text-written', 'windowID': 410}
+
+FILE visual-menu-wechat.jsonl
+{'bundle': 'com.tencent.xinWeChat', 'menuNodes': 198, 'shortcuts': [{'char': '4', 'modifiers': 0, 'virtualKey': -1}, {'char': '3', 'modifiers': 0, 'virtualKey': -1}, {'char': '2', 'modifiers': 0, 'virtualKey': -1}, {'char': '1', 'modifiers': 0, 'virtualKey': -1}, {'char': 'M', 'modifiers': 0, 'virtualKey': -1}, {'char': 'R', 'modifiers': 28, 'virtualKey': -1}, {'char': 'C', 'modifiers': 28, 'virtualKey': -1}, {'char': 'F', 'modifiers': 28, 'virtualKey': -1}, {'char': 'F', 'modifiers': 24, 'virtualKey': -1}, {'char': '-', 'modifiers': 0, 'virtualKey': -1}, {'char': '+', 'modifiers': 0, 'virtualKey': -1}, {'char': '\uf701', 'modifiers': 2, 'virtualKey': 125}, {'char': '\uf700', 'modifiers': 10, 'virtualKey': 126}, {'char': '\uf701', 'modifiers': 10, 'virtualKey': 125}, {'char': 'E', 'modifiers': 24, 'virtualKey': -1}, {'char': '🎤', 'modifiers': 8, 'virtualKey': 128}, {'char': 'F', 'modifiers': 0, 'virtualKey': -1}, {'char': '\x08', 'modifiers': 8, 'virtualKey': 51}, {'char': 'V', 'modifiers': 0, 'virtualKey': -1}, {'char': 'C', 'modifiers': 0, 'virtualKey': -1}, {'char': 'X', 'modifiers': 0, 'virtualKey': -1}, {'char': 'Z', 'modifiers': 1, 'virtualKey': -1}, {'char': 'Z', 'modifiers': 0, 'virtualKey': -1}, {'char': 'A', 'modifiers': 0, 'virtualKey': -1}, {'char': 'W', 'modifiers': 0, 'virtualKey': -1}, {'char': 'M', 'modifiers': 1, 'virtualKey': -1}, {'char': 'T', 'modifiers': 1, 'virtualKey': -1}, {'char': 'D', 'modifiers': 3, 'virtualKey': -1}, {'char': 'N', 'modifiers': 0, 'virtualKey': -1}, {'char': 'Q', 'modifiers': 2, 'virtualKey': -1}, {'char': 'Q', 'modifiers': 0, 'virtualKey': -1}, {'char': 'H', 'modifiers': 2, 'virtualKey': -1}, {'char': 'H', 'modifiers': 0, 'virtualKey': -1}, {'char': 'L', 'modifiers': 0, 'virtualKey': -1}, {'char': ',', 'modifiers': 0, 'virtualKey': -1}, {'char': 'I', 'modifiers': 0, 'virtualKey': -1}, {'char': 'Q', 'modifiers': 3, 'virtualKey': -1}, {'char': 'Q', 'modifiers': 1, 'virtualKey': -1}, {'char': 'Q', 'modifiers': 4, 'virtualKey': -1}, {'char': '⎋', 'modifiers': 3, 'virtualKey': 53}, {'char': '⎋', 'modifiers': 2, 'virtualKey': 53}]}
+{'bundle': 'com.tencent.xinWeChat', 'confidentBoxes': 4, 'frame': [1512, -1410, 1080, 1890], 'OCRboxes': 17, 'OCRseconds': 0.33554792404174805, 'pixels': [2160, 3780], 'storage': 'memory-only-no-image-or-text-written', 'windowID': 17834}
+
+FILE wechat-lifecycle-runloop.jsonl
+{'accepted': True, 'action': 'activate', 'bundle': 'com.tencent.xinWeChat'}
+foreground-warm front=com.tencent.xinWeChat active=True hidden=False windows=1 windowNodes=96 appNodes=298 truncated=False E=1 M=nil webAreas=0 CG410=True
+{'accepted': True, 'action': 'activate', 'bundle': 'com.google.Chrome'}
+background-0.8s front=com.google.Chrome active=False hidden=False windows=1 windowNodes=97 appNodes=298 truncated=False E=1 M=nil webAreas=0 CG410=True
+background-5s front=com.google.Chrome active=False hidden=False windows=1 windowNodes=97 appNodes=295 truncated=False E=1 M=nil webAreas=0 CG410=True
+background-30s front=com.alibaba.DingTalkMac active=False hidden=False windows=1 windowNodes=96 appNodes=295 truncated=False E=1 M=nil webAreas=0 CG410=True
+{'accepted': True, 'action': 'activate', 'bundle': 'com.tencent.xinWeChat'}
+{'action': 'minimize', 'error': 0}
+minimized front=com.tencent.xinWeChat active=True hidden=False windows=1 windowNodes=96 appNodes=294 truncated=False E=1 M=nil webAreas=0 CG410=False
+{'action': 'restore-minimized', 'error': 0}
+{'accepted': False, 'action': 'hide'}
+hidden front=com.alibaba.DingTalkMac active=False hidden=True windows=0 windowNodes=0 appNodes=197 truncated=False E=1 M=nil webAreas=0 CG410=False
+{'accepted': False, 'action': 'unhide'}
+{'accepted': True, 'action': 'activate', 'bundle': 'com.tencent.xinWeChat'}
+restored front=com.tencent.xinWeChat active=True hidden=False windows=1 windowNodes=97 appNodes=295 truncated=False E=1 M=nil webAreas=0 CG410=True
+{'accepted': True, 'action': 'activate', 'bundle': 'com.google.Chrome'}
+
+FILE wechat-lifecycle.jsonl
+{'accepted': True, 'action': 'activate', 'bundle': 'com.tencent.xinWeChat'}
+foreground-warm front=com.tencent.xinWeChat active=True hidden=False windows=1 windowNodes=87 appNodes=289 truncated=False E=1 M=nil webAreas=0 CG410=True
+{'accepted': True, 'action': 'activate', 'bundle': 'com.google.Chrome'}
+background-0.8s front=com.tencent.xinWeChat active=True hidden=False windows=1 windowNodes=88 appNodes=289 truncated=False E=1 M=nil webAreas=0 CG410=True
+background-5s front=com.tencent.xinWeChat active=True hidden=False windows=1 windowNodes=88 appNodes=286 truncated=False E=1 M=nil webAreas=0 CG410=True
+background-30s front=com.tencent.xinWeChat active=True hidden=False windows=1 windowNodes=96 appNodes=295 truncated=False E=1 M=nil webAreas=0 CG410=True
+{'accepted': True, 'action': 'activate', 'bundle': 'com.tencent.xinWeChat'}
+{'action': 'minimize', 'error': 0}
+minimized front=com.tencent.xinWeChat active=True hidden=False windows=1 windowNodes=96 appNodes=294 truncated=False E=1 M=nil webAreas=0 CG410=False
+{'action': 'restore-minimized', 'error': 0}
+{'accepted': False, 'action': 'hide'}
+hidden front=com.tencent.xinWeChat active=True hidden=False windows=0 windowNodes=0 appNodes=197 truncated=False E=1 M=nil webAreas=0 CG410=False
+{'accepted': False, 'action': 'unhide'}
+{'accepted': True, 'action': 'activate', 'bundle': 'com.tencent.xinWeChat'}
+restored front=com.tencent.xinWeChat active=True hidden=False windows=1 windowNodes=97 appNodes=295 truncated=False E=1 M=nil webAreas=0 CG410=True
+{'accepted': True, 'action': 'activate', 'bundle': 'com.google.Chrome'}
+
+INSTALLED METADATA (not runtime framework classification)
+Google Chrome com.google.Chrome 156.0.8078.49 8078.49 frameworks=Google Chrome Framework.framework
+Cursor com.todesktop.230313mzl4w4u92 3.27.22 3.27.22 frameworks=Electron Framework.framework,ReactiveObjC.framework,Squirrel.framework,Mantle.framework
+ChatGPT com.openai.codex 26.1013.31256 20586 frameworks=Sparkle.framework,Codex Framework.framework
+Claude com.anthropic.claudefordesktop 2.37337.1 2.37337.1 frameworks=Electron Framework.framework,ReactiveObjC.framework,Squirrel.framework,Mantle.framework
+DingTalk com.alibaba.DingTalkMac 9.0.2 59049656 frameworks=Masonry.framework,UTMac.framework,Sparkle.framework,QtXml.framework,UTDID.framework,QtOpenGL.framework,GaeaMac.framework,safechat.framework,QtNetwork.framework,QtConcurrent.framework
+QQMusic com.tencent.QQMusicMac 11.10.5 73283 frameworks=Masonry.framework,SVGKit.framework,TekEngineLib.framework,BeaconAPI_Base.framework,libpag.framework
+Obsidian md.obsidian 1.7.7 0.14.8 frameworks=Electron Framework.framework,ReactiveObjC.framework,Squirrel.framework,Mantle.framework
+Blender org.blenderfoundation.blender 5.2.0 5.2.0 frameworks=
+Godot org.godotengine.godot 4.7.1 4.7.1 frameworks=
+wpsoffice com.kingsoft.wpsoffice.mac 12.1.29182 29182 frameworks=
+Steam com.valvesoftware.steam None 6.1 frameworks=Breakpad.framework

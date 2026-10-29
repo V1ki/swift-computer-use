@@ -20,8 +20,8 @@ reverse-engineering study of the `Codex Computer Use.app` service — with a dro
 | `CUAService` | `LSUIElement` 后台服务：AF_UNIX socket、JSON-RPC 2.0（4B LE 长度前缀）、按会话授权 App、权限门 |
 | `CUAEngine` | 无障碍树抓取（AXUIElement）+ 元素索引表、ScreenCaptureKit 截图、CGEvent/AX 输入注入、应用与窗口枚举 |
 | `cua` | 命令行：`ping`/`apps`/`windows`/`state`/`click`/`press-key`/`type`/`scroll`/`set-value`/`drag`/`paste`/`select-text`/`action`/`screenshot`/`doctor`/`session`/`call` |
-| `cua mcp` | stdio MCP server，14 个与 sky mac API 对齐的工具 |
-| `@swiftcua/sky` | Node 客户端：`sky.list_apps()`、`sky.get_app_state()` … 与原 `@oai/sky` 同形 |
+| `cua mcp` | stdio MCP server，16 个工具（含 `find_text` / `click_text`） |
+| `@swiftcua/sky` | Node 客户端：`sky.list_apps()`、`sky.get_app_state()` … 与原 `@oai/sky` 同形，另有 `find_text`/`click_text` |
 | `swiftcua-mcp` | Node MCP server，提供 cua_repl 风格 `js` / `js_reset` / `turn_ended` 工具 |
 
 ## 2. 快速开始
@@ -109,6 +109,25 @@ cd js && npm link          # 或 npm install /path/to/swift-computer-use/js
 
 工具清单与参数见 [`js/README.md`](js/README.md) 与 `cua mcp` 的 `tools/list`。
 
+## 4.5 微信这类 App 怎么控制
+
+> 完整研究见 [`re/05-ax-less-apps.md`](re/05-ax-less-apps.md)。
+
+1. **先激活再读 AX**：很多国产 App（微信、部分 Electron/CEF 壳）是「懒 AX」——不在前台时
+   只暴露菜单栏。SwiftCUA 的 `getAppState`/`findText` 检测到根不是 `AXWindow` 会自动激活重抓。
+2. **AX 可用就用语义操作**：微信激活后有会话列表（`list "会话"`，每行一个 `staticText`）、
+   消息列表、输入框、发送按钮，可 `click --element N` / `click-text --text 通讯录`。
+3. **AX 不可用再退像素**：`capture_screenshot` + `find_text`（Vision OCR）拿窗口相对坐标，
+   `click --x --y` / `click_text` 点击；键盘快捷键（`press_key`）优先于坐标。
+4. **发消息这类不可逆动作**要人工确认，`发送` 按钮在输入框为空时是 `disabled`，可作安全断言。
+
+```bash
+cua state  --app com.tencent.xinWeChat                  # 自动激活并返回完整树
+cua find-text  --app com.tencent.xinWeChat --text 通讯录
+cua click-text --app com.tencent.xinWeChat --text 通讯录   # 切到通讯录页
+cua find-text  --app com.tencent.xinWeChat --text 搜索 --ocr-only   # 强制 OCR 定位
+```
+
 ## 5. 逆向报告
 
 | 报告 | 内容 |
@@ -117,6 +136,7 @@ cd js && npm link          # 或 npm install /path/to/swift-computer-use/js
 | [`re/02-protocol.md`](re/02-protocol.md) | 客户端↔服务协议：4B LE + JSON-RPC 2.0、ping 握手、14 帧实测、11 个方法参数形状、MCP 工具 schema |
 | [`re/03-security-model.md`](re/03-security-model.md) | TCC 权限矩阵、连接级签名/审计校验、会话与 Always-allow 落盘、锁屏授权插件与 Ctrl-Cmd-Q 回锁 |
 | [`re/04-engine-internals.md`](re/04-engine-internals.md) | 截图（SkyLight/SCScreenshotManager）、AX 树（公开 API + 私有 AccessibilitySPI）、输入注入（CGEventPostToPid）、AX 文本格式 |
+| [`re/05-ax-less-apps.md`](re/05-ax-less-apps.md) | 懒 AX / 无 AX 应用的 AX 可用性矩阵、激活重试、OCR 兜底、快捷键与坐标控制策略 |
 
 > `re/raw/` 里的原始 dump 有数百 MB，未入库；已入库的只有 `re/raw/*/run.sh` 等小体积复现脚本（见 [re/README.md](re/README.md)）。
 
