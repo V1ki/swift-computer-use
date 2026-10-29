@@ -203,3 +203,53 @@ cua press-key --app com.tencent.xinWeChat --key Escape   # 清理，输入框无
 2. **AX 动作不可靠就视觉点击**：按钮有 `AXPress` 不等于它会响应；按「文字/矩形」点击更稳。
 3. **无 AX 区域用截图 + OCR/视觉定位**：坐标必须绑定 `windowId`，并处理 Retina 缩放。
 4. **凡是不可逆动作（发送、支付）先校验状态**；输入框为空时「发送」按钮为 `disabled` 是很好的安全断言。
+
+## 9. 后台执行与非侵入式预览（v0.2 改造）
+
+用户实测反馈：CLI 在操作微信时会反复把微信窗口拉到前台、抢输入焦点；原版 Codex 则是后台执行 +
+系统级「正在共享」小窗预览。逐项排查与改造记录如下。
+
+### 9.1 根因
+
+- `getAppState` 走的是只读 AX，**不抢前台**（实测：Chrome 前台读微信后前台不变）；
+- 所有输入动作都经过 `prepare()` → `NSRunningApplication.activate` + 窗口 raise + 全局
+  `CGEvent`（`.cghidEventTap`），因此**每次点击/输入都会抢前台并移动物理光标**；
+- 懒 AX 的自动激活也是前台化（微信冷启动时需要，暖态不需要）。
+
+### 9.2 改造
+
+| 项 | 改造 |
+|---|---|
+| 默认策略 | `setOptions {activate:false}`（默认）：不 activate、不 raise、不移动物理光标 |
+| 语义动作 | `AXPress` / `AXValue` / `AXSelectedTextRange` 直接作用于后台 App；文本可 AX 直写（微信输入框实测可写） |
+| 坐标/键盘 | 全部改为 `CGEventPostToPid` 定向投递（键盘、Unicode 文本、鼠标、滚轮、拖拽） |
+| 前台化 | 显式 opt-in：CLI `--activate`、MCP/JS `set_options {activate:true}`；懒 AX 激活同受该开关控制 |
+| 诚实失败 | 后台鼠标点击公开 API 投递不到 AppKit 控件 → 返回 `inputRejected` 并提示 `--activate`；`clickText` 用**结构性 AX fingerprint** 检测「AXPress 返回成功但界面没变」 |
+| 预览 | 每窗口常驻 `SCStream`（2fps、空闲 20s 停止）；截图直接复用流帧 |
+
+### 9.3 系统共享预览证据
+
+```
+# SwiftCUA 服务注册 SCStream
+CUAService[98441] (ScreenCaptureKit) -[SCStreamManager registerStream:] Registering stream with streamID=…
+CUAService[98441] (ScreenCaptureKit) -[SCContentFilter setContentsAndStreamTypeMacOS]: contentRect=[x=0 y=33 1512×949] pointPixelScale=2
+
+# ControlCenter 接收并纳入共享流（这就是「正在共享」小窗的数据源）
+ControlCenter[809] (ScreenCaptureKit) -[SCStreamInfo initWithConfiguration:contentFilter:]
+ControlCenter[809] (ScreenCaptureKit) -[SCControlCenterManager updateStreamsWithType:config:contentFilter:]_block_invoke: didMatch 1 with type 3
+```
+
+截图经流返回：3024×1898 JPEG（1512×949 @2x），与一次性截图一致。
+该机制对应 WWDC23-10136：每个 SCStream 都会自动出现在 Video 菜单/系统共享面板的 live preview 中，
+无需 `SCContentSharingPicker.present()`。
+
+### 9.4 仍存在的边界
+
+1. **后台鼠标点击**：公开 API 的 `CGEventPostToPid` 对 AppKit 控件基本不生效（TextEdit 文档、
+   微信侧边栏均实测无效，状态哈希不变）。原版靠私有 `SyntheticAppFocusEnforcer`（activation
+   event tap + SystemFocusStealPreventer + VirtualCursor）让目标 App「以为自己是 key window」，
+   公开 API 无法完全等价。因此需要像素点击的场景仍要 `--activate`（会抢前台并移动光标）。
+2. **冷启动懒 AX**：微信等应用首次在被读取前需要激活一次；后台模式下只返回菜单栏树。
+3. **自绘 PiP**：原版除系统共享面板外，还有自己的 `RemoteHostedPIPContentPublisher` /
+   `RemoteHostedPIPWindowRenderer` / `CUAServiceRemoteHostedPIPController` + `NSStatusItem`
+   常驻小窗；SwiftCUA 目前只复现了系统共享预览，未实现自绘 PiP。

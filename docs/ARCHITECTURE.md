@@ -133,6 +133,20 @@
 组件（见 `re/04` / `re/05`）；SwiftCUA 用公开 API 实现了其中「激活 + 开关 + OCR」这条主线，
 不做虚拟光标与合成焦点劫持。
 
+### 3.8 后台执行策略（默认）
+
+默认不抢前台、不移动物理光标：
+
+- 语义动作：`AXPress` / `AXValue` / `AXSelectedTextRange` 直接对后台 App 生效；
+- 坐标动作：`CGEventPostToPid` 定向投递（键盘、Unicode 文本、鼠标、滚轮、拖拽），
+  物理光标不动、前台 App 不变；
+- 文本输入：优先 AX 写值（如微信输入框），否则 pid 定向键事件；
+- 懒 AX 激活是**显式开关**：`setOptions {activate:true}` / CLI `--activate` 才允许 raise。
+
+原服务靠 `SyntheticAppFocusEnforcer` + `VirtualCursor` + event tap 让后台 App「以为自己是 key window」，
+从而让 pid 定向的鼠标事件也生效；SwiftCUA 只用公开 API，因此后台鼠标点击在部分 App 上不生效
+（实测微信侧边栏），这类场景仍需要 `--activate`。
+
 ## 4. 典型调用链
 
 `sky.get_app_state({app: "com.apple.Safari"})`：

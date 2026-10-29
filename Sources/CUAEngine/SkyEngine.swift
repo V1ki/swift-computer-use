@@ -9,6 +9,8 @@ public actor SkyEngine: CUAEngine {
     private var installedApps: [CUAAppInfo] = []
     private var installedAt = Date.distantPast
     private var generation: UInt64 = 0
+    /// false = never raise the target app nor move the physical cursor.
+    private var allowActivation = false
 
     public init() {}
 
@@ -59,7 +61,8 @@ public actor SkyEngine: CUAEngine {
 
         // Lazy AX: WeChat & friends only build their tree after being frontmost
         // (or unhidden) once. Hidden windows also report zero AX windows.
-        if !snapshot.hasWindowRoot {
+        // Activating is opt-in; in background mode the caller gets the partial tree.
+        if !snapshot.hasWindowRoot, allowActivation {
             CUALogger(CUALog.engine).debug("AX root=\(snapshot.rootRole ?? "nil") for \(label); activating to materialize tree")
             _ = app.activate(options: [.activateAllWindows])
             for _ in 0..<25 {
@@ -156,7 +159,25 @@ public actor SkyEngine: CUAEngine {
         }
         let running = try AppCatalog.running(params.app)
         let app = AppCatalog.identifier(running)
-        _ = try prepare(app, windowID: targetWindowID(params.windowId, match: match))
+        _ = try prepareTarget(app, windowID: targetWindowID(params.windowId, match: match))
+        if !allowActivation {
+            guard let index = match.index else {
+                throw CUAError(code: .inputRejected,
+                               message: "Background click needs an AX element; OCR hit has no semantic action. Rerun with --activate",
+                               data: .object(["hint": .string("cua --activate ...")]))
+            }
+            let before = snapshots[app].map { fingerprint($0.nodes) }
+            let element = try resolve(running, index: index, windowID: params.windowId)
+            _ = AXUIElementPerformAction(element, kAXPressAction as CFString)
+            usleep(300_000)
+            if let before, let fresh = try? AccessibilityCapture().capture(pid: running.processIdentifier, window: nil),
+               fingerprint(fresh.nodes) == before {
+                throw CUAError(code: .inputRejected,
+                               message: "AXPress had no visible effect in background; rerun with --activate",
+                               data: .object(["hint": .string("cua --activate ...")]))
+            }
+            return match
+        }
         // clickText always acts on the located rectangle: AXPress is not
         // reliable for apps whose buttons ignore it (WeChat sidebar buttons
         // expose AXPress but do not switch pages), and a visual click is the
@@ -173,7 +194,8 @@ public actor SkyEngine: CUAEngine {
         }
         let point = Coordinates.global(CUAPoint(x: match.rect.x + match.rect.width / 2,
                                                 y: match.rect.y + match.rect.height / 2), in: target.bounds)
-        try InputSynthesis.click(at: point, button: .left, count: params.clickCount ?? 1, flags: [], duration: 20)
+        try InputSynthesis.click(at: point, button: .left, count: params.clickCount ?? 1, flags: [], duration: 20,
+                                 pid: running.processIdentifier)
         return match
     }
 
@@ -263,23 +285,51 @@ public actor SkyEngine: CUAEngine {
         return element
     }
 
-    private func prepare(_ id: String, windowID: UInt32?) throws -> NSRunningApplication {
+    public func setOptions(activate: Bool) async {
+        allowActivation = activate
+        CUALogger(CUALog.engine).info("activation policy: \(activate ? "foreground (may raise windows)" : "background")")
+    }
+
+    /// Coarse content fingerprint used to detect no-op background actions
+    /// (pid-targeted mouse events are not delivered to most AppKit controls).
+    private func fingerprint(_ nodes: [CUAAccessibilityNode]) -> Int {
+        // Structural fingerprint: ignore volatile static text/content, keep
+        // window/list/button/tab labels. A background AXPress that "succeeds"
+        // but changes nothing (WeChat sidebar) is detected by equality here.
+        let structural: Set<String> = [
+            "AXWindow", "AXSheet", "AXList", "AXOutline", "AXTabGroup", "AXToolbar",
+            "AXButton", "AXRadioButton", "AXCheckBox", "AXPopUpButton", "AXComboBox",
+            "AXSplitGroup", "AXMenuBar", "AXMenuItem", "AXMenuItemCheckbox", "AXScrollArea"
+        ]
+        var hasher = Hasher()
+        func visit(_ node: CUAAccessibilityNode) {
+            if structural.contains(node.role) {
+                hasher.combine(node.role)
+                hasher.combine(node.title ?? "")
+                if let frame = node.frame {
+                    hasher.combine(Int(frame.x)); hasher.combine(Int(frame.y))
+                    hasher.combine(Int(frame.width)); hasher.combine(Int(frame.height))
+                }
+            }
+            node.children.forEach(visit)
+        }
+        nodes.forEach(visit)
+        return hasher.finalize()
+    }
+
+    /// Resolves the target app without raising it. All input paths post events
+    /// directly to the app's event queue (`CGEventPostToPid`) or use AX
+    /// semantic actions, so the user's foreground app and physical cursor are
+    /// left untouched. Only the lazy-AX capture path may activate once.
+    private func prepareTarget(_ id: String, windowID: UInt32?) throws -> NSRunningApplication {
         try AXAccess.checkPermission()
         let app = try AppCatalog.running(id)
-        let canonical = AppCatalog.identifier(app)
-        let target: CUAWindowInfo?
-        if let windowID { target = try AppCatalog.targetWindow(app: canonical, windowID: windowID, windows: AppCatalog.windows()) }
-        else { target = nil }
-        _ = ensureActive(app)
-        let axApp = AXUIElementCreateApplication(app.processIdentifier)
-        AXUIElementSetMessagingTimeout(axApp, 0.15)
-        _ = AXUIElementSetAttributeValue(axApp, kAXFrontmostAttribute as CFString, kCFBooleanTrue)
-        if let target {
-            let window = try AXAccess.window(pid: app.processIdentifier, target: target)
-            _ = AXUIElementPerformAction(window, kAXRaiseAction as CFString)
-            _ = AXUIElementSetAttributeValue(window, kAXMainAttribute as CFString, kCFBooleanTrue)
+        if let windowID {
+            _ = try AppCatalog.targetWindow(app: AppCatalog.identifier(app), windowID: windowID, windows: AppCatalog.windows())
         }
-        guard ensureActive(app) else { throw CUAError(code: .inputRejected, message: "Cannot activate target app") }
+        if allowActivation {
+            _ = ensureActive(app)
+        }
         return app
     }
 
@@ -326,11 +376,11 @@ public actor SkyEngine: CUAEngine {
         return Coordinates.global(CUAPoint(x: x ?? window.bounds.width / 2, y: y ?? window.bounds.height / 2), in: window.bounds)
     }
 
-    private func focus(_ element: AXUIElement) throws {
+    private func focus(_ element: AXUIElement, pid: pid_t) throws {
         let result = AXUIElementSetAttributeValue(element, kAXFocusedAttribute as CFString, kCFBooleanTrue)
         if result != .success {
             guard let frame = AXAccess.frame(element) else { try AXAccess.check(result, context: "Focus element"); return }
-            try InputSynthesis.click(at: Coordinates.center(frame), button: .left, count: 1, flags: [], duration: 20)
+            try InputSynthesis.click(at: Coordinates.center(frame), button: .left, count: 1, flags: [], duration: 20, pid: pid)
         }
     }
 
@@ -344,7 +394,7 @@ public actor SkyEngine: CUAEngine {
             if let modifier = KeyChord.modifier(key) { flags = modifier }
             else { flags = try KeyChord.parse(key).flags }
         }
-        let app = try prepare(params.app, windowID: params.windowId)
+        let app = try prepareTarget(params.app, windowID: params.windowId)
         if let index = params.elementIndex, params.key == nil, button == .left, count == 1, params.durationMilliseconds == nil {
             let element = try resolve(app, index: index, windowID: params.windowId)
             let status = AXUIElementPerformAction(element, kAXPressAction as CFString)
@@ -352,24 +402,42 @@ public actor SkyEngine: CUAEngine {
             if status == .invalidUIElement || status == .cannotComplete { try AXAccess.check(status, context: "Press element") }
         }
         let location = try point(app: app, index: params.elementIndex, x: params.x, y: params.y, windowID: params.windowId)
-        try InputSynthesis.click(at: location, button: button, count: count, flags: flags, duration: duration)
+        if !allowActivation, params.elementIndex == nil {
+            // Public API cannot deliver a background mouse click: CGEventPostToPid
+            // reaches the app's queue but AppKit controls ignore it without a key
+            // window (verified against TextEdit/WeChat in re/06).
+            throw CUAError(code: .inputRejected,
+                           message: "Background coordinate click is not supported by macOS public APIs; rerun with --activate",
+                           data: .object(["hint": .string("cua --activate ...")]))
+        }
+        try InputSynthesis.click(at: location, button: button, count: count, flags: flags, duration: duration,
+                                 pid: app.processIdentifier)
     }
 
     public func pressKey(_ params: PressKeyParams) async throws {
         let chord = try KeyChord.parse(params.key)
         let duration = try InputSynthesis.duration(params.durationMilliseconds)
-        _ = try prepare(params.app, windowID: params.windowId)
-        try InputSynthesis.key(chord, duration: duration)
+        let app = try prepareTarget(params.app, windowID: params.windowId)
+        try InputSynthesis.key(chord, duration: duration, pid: app.processIdentifier)
     }
 
     public func typeText(_ params: TypeTextParams) async throws {
-        let app = try prepare(params.app, windowID: params.windowId)
-        if let index = params.elementIndex { try focus(resolve(app, index: index, windowID: params.windowId)) }
-        try InputSynthesis.text(params.text)
+        let app = try prepareTarget(params.app, windowID: params.windowId)
+        if let index = params.elementIndex {
+            let element = try resolve(app, index: index, windowID: params.windowId)
+            // AX direct write keeps the target app in background (no key window needed).
+            if let current = AXAccess.value(element, kAXValueAttribute) as? String,
+               AXUIElementSetAttributeValue(element, kAXValueAttribute as CFString,
+                                            (current + params.text) as CFString) == .success {
+                return
+            }
+            try focus(element, pid: app.processIdentifier)
+        }
+        try InputSynthesis.text(params.text, pid: app.processIdentifier)
     }
 
     public func scroll(_ params: ScrollParams) async throws {
-        let app = try prepare(params.app, windowID: params.windowId)
+        let app = try prepareTarget(params.app, windowID: params.windowId)
         let location = try point(app: app, index: params.elementIndex, x: params.x, y: params.y, windowID: params.windowId)
         var dx = params.scrollX ?? 0, dy = params.scrollY ?? 0
         if let raw = params.direction {
@@ -385,51 +453,42 @@ public actor SkyEngine: CUAEngine {
             }
         }
         guard dx.isFinite, dy.isFinite, abs(dx) <= 1_000_000, abs(dy) <= 1_000_000 else { throw CUAError.invalidParams("Scroll deltas are out of range", method: "scroll") }
-        try InputSynthesis.mouse(.mouseMoved, at: location)
-        // CG 的正值是上/左；协议的正值是下/右。
-        let event = CGEvent(scrollWheelEvent2Source: nil, units: .pixel, wheelCount: 2, wheel1: Int32(-dy), wheel2: Int32(-dx), wheel3: 0)
-        event?.location = location
-        try InputSynthesis.post(event)
+        // CG 的正值是上/左；协议的正值是下/右；定向投递到目标进程。
+        try InputSynthesis.scroll(at: location, dx: dx, dy: dy, pid: app.processIdentifier)
     }
 
     public func setValue(_ params: SetValueParams) async throws {
-        let app = try prepare(params.app, windowID: params.windowId)
+        let app = try prepareTarget(params.app, windowID: params.windowId)
         let element = try resolve(app, index: params.elementIndex, windowID: params.windowId)
         let status = AXUIElementSetAttributeValue(element, kAXValueAttribute as CFString, params.value as CFString)
         if status == .success { return }
         if status == .invalidUIElement || status == .cannotComplete { try AXAccess.check(status, context: "Set value") }
-        try focus(element)
-        try InputSynthesis.key(KeyChord.parse("Cmd+a"))
-        if params.value.isEmpty { try InputSynthesis.key(KeyChord.parse("BackSpace")) }
-        else { try InputSynthesis.text(params.value) }
+        try focus(element, pid: app.processIdentifier)
+        try InputSynthesis.key(KeyChord.parse("Cmd+a"), pid: app.processIdentifier)
+        if params.value.isEmpty { try InputSynthesis.key(KeyChord.parse("BackSpace"), pid: app.processIdentifier) }
+        else { try InputSynthesis.text(params.value, pid: app.processIdentifier) }
     }
 
     public func drag(_ params: DragParams) async throws {
-        let app = try prepare(params.app, windowID: params.windowId)
+        let app = try prepareTarget(params.app, windowID: params.windowId)
         let start = try point(app: app, index: nil, x: params.fromX, y: params.fromY, windowID: params.windowId)
         let end = try point(app: app, index: nil, x: params.toX, y: params.toY, windowID: params.windowId)
-        try InputSynthesis.mouse(.leftMouseDown, at: start)
-        defer { try? InputSynthesis.mouse(.leftMouseUp, at: end) }
-        for step in 1...30 {
-            InputSynthesis.pause(15)
-            let t = Double(step) / 30
-            try InputSynthesis.mouse(.leftMouseDragged, at: CGPoint(x: start.x + (end.x - start.x) * t, y: start.y + (end.y - start.y) * t))
-        }
+        try InputSynthesis.drag(from: start, to: end, pid: app.processIdentifier)
     }
 
     public func paste(_ params: PasteParams) async throws {
         guard let format = CUAPasteFormat(rawValue: params.format ?? "text") else { throw CUAError.invalidParams("Invalid paste format", method: "paste") }
-        _ = try prepare(params.app, windowID: params.windowId)
-        try InputSynthesis.paste(params.text, format: format)
+        let app = try prepareTarget(params.app, windowID: params.windowId)
+        try InputSynthesis.paste(params.text, format: format, pid: app.processIdentifier)
     }
 
     public func selectText(_ params: SelectTextParams) async throws {
         guard let type = CUASelectionType(rawValue: params.selectionType ?? "text") else { throw CUAError.invalidParams("Invalid selectionType", method: "selectText") }
-        let app = try prepare(params.app, windowID: params.windowId)
+        let app = try prepareTarget(params.app, windowID: params.windowId)
         let element = try resolve(app, index: params.elementIndex, windowID: params.windowId)
         guard let source = AXAccess.value(element, kAXValueAttribute) as? String else { throw CUAError(code: .inputRejected, message: "Element has no readable text") }
         var range = try TextInput.selection(in: source, text: params.text, prefix: params.prefix, suffix: params.suffix, type: type)
-        try focus(element)
+        try focus(element, pid: app.processIdentifier)
         if let value = AXValueCreate(.cfRange, &range) {
             let status = AXUIElementSetAttributeValue(element, kAXSelectedTextRangeAttribute as CFString, value)
             if status == .success { return }
@@ -440,13 +499,13 @@ public actor SkyEngine: CUAEngine {
         let before = ns.substring(to: range.location).count
         let count = ns.substring(with: NSRange(location: range.location, length: range.length)).count
         guard before + count <= 4000 else { throw CUAError(code: .inputRejected, message: "Keyboard selection fallback exceeds 4000 characters") }
-        try InputSynthesis.key(KeyChord.parse("Cmd+Home"))
-        for _ in 0..<before { try InputSynthesis.key(KeyChord.parse("Right"), duration: 0) }
-        for _ in 0..<count { try InputSynthesis.key(KeyChord.parse("Shift+Right"), duration: 0) }
+        try InputSynthesis.key(KeyChord.parse("Cmd+Home"), pid: app.processIdentifier)
+        for _ in 0..<before { try InputSynthesis.key(KeyChord.parse("Right"), duration: 0, pid: app.processIdentifier) }
+        for _ in 0..<count { try InputSynthesis.key(KeyChord.parse("Shift+Right"), duration: 0, pid: app.processIdentifier) }
     }
 
     public func performSecondaryAction(_ params: PerformSecondaryActionParams) async throws {
-        let app = try prepare(params.app, windowID: params.windowId)
+        let app = try prepareTarget(params.app, windowID: params.windowId)
         let element = try resolve(app, index: params.elementIndex, windowID: params.windowId)
         let action = AXAccess.actions(element).first { $0.caseInsensitiveCompare(params.action) == .orderedSame } ?? params.action
         try AXAccess.check(AXUIElementPerformAction(element, action as CFString), context: "Perform \(action)")

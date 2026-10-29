@@ -224,10 +224,11 @@ final class CUAClientTests: XCTestCase {
             "set_value": ["app", "elementIndex", "value"], "drag": ["app", "fromX", "fromY", "toX", "toY"],
             "paste": ["app", "text"], "select_text": ["app", "elementIndex", "text"],
             "perform_secondary_action": ["app", "elementIndex", "action"], "capture_screenshot": [],
-            "find_text": ["app", "text"], "click_text": ["app", "text"], "get_permissions": []
+            "find_text": ["app", "text"], "click_text": ["app", "text"],
+            "set_options": [], "get_permissions": []
         ]
         XCTAssertEqual(Set(tools.compactMap { $0["name"]?.stringValue }), Set(required.keys))
-        XCTAssertEqual(tools.count, 16)
+        XCTAssertEqual(tools.count, 17)
         for tool in tools {
             let name = try XCTUnwrap(tool["name"]?.stringValue)
             let schema = try XCTUnwrap(tool["inputSchema"])

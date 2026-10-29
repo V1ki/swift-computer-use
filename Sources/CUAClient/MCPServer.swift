@@ -113,6 +113,8 @@ enum MCPTools {
             "ocrOnly": field("boolean", "Skip the AX tree and click the OCR hit"),
             "clickCount": field("integer", "Number of clicks", minimum: 1)],
             required: ["app", "text"], target: true),
+        tool("set_options", .setOptions, "Toggle foreground activation (default: background, no focus stealing)", [
+            "activate": field("boolean", "Allow raising the target app and moving the real cursor")]),
         tool("get_permissions", .getPermissions, "Check Screen Recording and Accessibility permissions without prompting")
     ]
 }

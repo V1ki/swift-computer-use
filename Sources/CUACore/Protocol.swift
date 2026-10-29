@@ -105,6 +105,7 @@ public enum CUAMethod: String, Codable, Sendable, CaseIterable {
     case captureScreenshot
     case findText
     case clickText
+    case setOptions
     case endSession
 
     /// Notifications are fire-and-forget and carry no id.
@@ -589,4 +590,17 @@ public struct ClickTextParams: Codable, Sendable, Hashable {
 public struct ClickTextResult: Codable, Sendable, Hashable {
     public var match: CUATextMatch
     public init(match: CUATextMatch) { self.match = match }
+}
+
+// MARK: - Runtime options
+
+/// Per-connection/service automation policy.
+/// `activate == true` restores focus-stealing behaviour (raise + real cursor);
+/// default is fully background (AX + pid-targeted events only).
+public struct SetOptionsParams: Codable, Sendable, Hashable {
+    public var activate: Bool?
+
+    public init(activate: Bool? = nil) {
+        self.activate = activate
+    }
 }

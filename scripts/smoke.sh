@@ -60,7 +60,7 @@ printf '%s\n%s\n%s\n' \
   '{"jsonrpc":"2.0","id":2,"method":"tools/list"}' \
   | "$CLI" mcp 2>/dev/null > "$TMP/mcp.out"
 check "MCP initialize" "grep -q '\"id\":1' '$TMP/mcp.out'"
-check "MCP 16 tools" "[[ \$(grep -o '\"name\":\"[a-z_]*\"' '$TMP/mcp.out' | sort -u | wc -l | tr -d ' ') -ge 16 ]]"
+check "MCP 17 tools" "[[ \$(grep -o '\"name\":\"[a-z_]*\"' '$TMP/mcp.out' | sort -u | wc -l | tr -d ' ') -ge 17 ]]"
 
 echo
 echo "smoke: $PASS passed, $FAIL failed"

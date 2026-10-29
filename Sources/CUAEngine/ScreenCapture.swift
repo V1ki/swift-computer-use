@@ -31,6 +31,14 @@ enum ScreenCapture {
             var screenshots: [CUAScreenshot] = []
             for target in targets {
                 guard let window = content.windows.first(where: { $0.windowID == target.id }) else { continue }
+                // Prefer the persistent stream: it powers the macOS sharing
+                // preview and reuses a warm frame instead of a cold capture.
+                if let frame = await WindowStream.shared.image(windowID: target.id) {
+                    var screenshot = try image(cgImage: frame, rect: window.frame, app: target.app, windowID: target.id)
+                    screenshot.zIndex = targets.count - screenshots.count
+                    screenshots.append(screenshot)
+                    continue
+                }
                 let display = content.displays.max { lhs, rhs in
                     area(lhs.frame.intersection(window.frame)) < area(rhs.frame.intersection(window.frame))
                 }
@@ -52,6 +60,20 @@ enum ScreenCapture {
         guard let mode = CGDisplayCopyDisplayMode(display), mode.width > 0 else { return 1 }
         return max(1, Double(mode.pixelWidth) / Double(mode.width))
     }
+    private static func image(cgImage: CGImage, rect: CGRect, app: String?, windowID: UInt32?) throws -> CUAScreenshot {
+        let data = NSMutableData()
+        guard let destination = CGImageDestinationCreateWithData(data, UTType.jpeg.identifier as CFString, 1, nil) else {
+            throw CUAError(code: .captureFailed, message: "Cannot create JPEG encoder")
+        }
+        CGImageDestinationAddImage(destination, cgImage, [kCGImageDestinationLossyCompressionQuality: 0.8] as CFDictionary)
+        guard CGImageDestinationFinalize(destination) else {
+            throw CUAError(code: .captureFailed, message: "JPEG encoding failed")
+        }
+        return CUAScreenshot(url: "data:image/jpeg;base64," + (data as Data).base64EncodedString(),
+                             width: rect.width, height: rect.height,
+                             originX: rect.minX, originY: rect.minY, app: app, windowId: windowID)
+    }
+
     private static func image(filter: SCContentFilter, rect: CGRect, scale: Double, app: String?, windowID: UInt32?) async throws -> CUAScreenshot {
         let config = SCStreamConfiguration()
         config.showsCursor = false

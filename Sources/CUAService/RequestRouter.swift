@@ -150,6 +150,10 @@ actor RequestRouter {
             try await gate.check(accessibility: true, screenRecording: value.useOCR ?? false)
             try Task.checkCancellation()
             return try CUACodec.jsonValue(ClickTextResult(match: try await engine.clickText(value)))
+        case .setOptions:
+            let value = try decode(SetOptionsParams.self, params, method)
+            await engine.setOptions(activate: value.activate ?? false)
+            return .object([:])
         case .endSession:
             let value = try decode(EndSessionParams.self, params, method)
             try await sessions.endSession(value.sessionId)

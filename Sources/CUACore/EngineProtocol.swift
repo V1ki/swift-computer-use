@@ -48,6 +48,10 @@ public protocol CUAEngine: Sendable {
     /// Click the best text match; returns the hit that was acted on.
     func clickText(_ params: ClickTextParams) async throws -> CUATextMatch
 
+    /// Toggles whether actions may raise the target app and move the real
+    /// cursor. Default is background-only (false).
+    func setOptions(activate: Bool) async
+
     /// Drops cached per-app state (used by `endSession`).
     func resetSessionState() async
 }
@@ -66,6 +70,8 @@ public extension CUAEngine {
 }
 
 public extension CUAEngine {
+    func setOptions(activate: Bool) async {}
+
     func findText(_ params: FindTextParams) async throws -> [CUATextMatch] {
         throw CUAError(code: .unsupported, message: "findText is not implemented by this engine")
     }

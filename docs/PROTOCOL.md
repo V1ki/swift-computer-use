@@ -83,6 +83,7 @@
 | `captureScreenshot` | `app?` \| `windowId?` \| `displayId?` | `{screenshots:[...]}` |
 | `findText` | `app` (req), `text` (req), `exact?`, `useOCR?`, `ocrOnly?`, `windowId?`, `limit?` | `{matches:[{index?,text,role?,rect,source,confidence?,windowId?}]}` |
 | `clickText` | `app`,`text` (req), `exact?`, `useOCR?`, `ocrOnly?`, `windowId?`, `clickCount?` | `{match:{…}}` |
+| `setOptions` | `activate?` | `{}` |
 | `endSession` | 通知：`sessionId` (req) | 无（不回包） |
 
 ### 元素索引语义
@@ -158,3 +159,16 @@
 错位到别的窗口（微信就有一个 1080×1890 的分离窗口）。
 
 `ocrOnly: true` 跳过 AX 查找直接走 OCR，便于验证像素路径或绕开已知错误的 AX 树。
+
+## 10. 执行策略（默认后台）
+
+`setOptions {activate: bool}` 控制服务是否允许「抢前台」：
+
+- `activate=false`（默认）：不调用 `NSRunningApplication.activate`、不移动物理光标；
+  输入走 `CGEventPostToPid` 定向投递，语义动作走 AX。目标 App 保持后台。
+  代价：部分应用不响应 pid 定向的鼠标事件（实测微信侧边栏按钮），这类操作会返回成功但界面不变。
+- `activate=true`：旧行为，会 raise 目标窗口并移动真实光标，像素点击 100% 生效。
+
+CLI：`cua --activate <command>` 在本次命令前下发 `setOptions {activate:true}`。
+冷启动的懒 AX 应用（如微信首次被读取）在后台模式下只返回菜单栏树；需要先显式前台化一次，
+之后保持后台即可正常读取。

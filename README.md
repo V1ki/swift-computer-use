@@ -18,7 +18,7 @@ reverse-engineering study of the `Codex Computer Use.app` service — with a dro
 | 组件 | 说明 |
 |---|---|
 | `CUAService` | `LSUIElement` 后台服务：AF_UNIX socket、JSON-RPC 2.0（4B LE 长度前缀）、按会话授权 App、权限门 |
-| `CUAEngine` | 无障碍树抓取（AXUIElement）+ 元素索引表、ScreenCaptureKit 截图、CGEvent/AX 输入注入、应用与窗口枚举 |
+| `CUAEngine` | 无障碍树抓取（AXUIElement）+ 元素索引表、常驻 ScreenCaptureKit 窗口流（系统共享预览）、`CGEventPostToPid` 后台输入、应用与窗口枚举 |
 | `cua` | 命令行：`ping`/`apps`/`windows`/`state`/`click`/`press-key`/`type`/`scroll`/`set-value`/`drag`/`paste`/`select-text`/`action`/`screenshot`/`doctor`/`session`/`call` |
 | `cua mcp` | stdio MCP server，16 个工具（含 `find_text` / `click_text`） |
 | `@swiftcua/sky` | Node 客户端：`sky.list_apps()`、`sky.get_app_state()` … 与原 `@oai/sky` 同形，另有 `find_text`/`click_text` |
@@ -122,11 +122,33 @@ cd js && npm link          # 或 npm install /path/to/swift-computer-use/js
 4. **发消息这类不可逆动作**要人工确认，`发送` 按钮在输入框为空时是 `disabled`，可作安全断言。
 
 ```bash
-cua state  --app com.tencent.xinWeChat                  # 自动激活并返回完整树
+cua state  --app com.tencent.xinWeChat                  # 后台读取（不抢前台）
+cua --activate click-text --app com.tencent.xinWeChat --text 通讯录   # 显式允许 raise 后再点
 cua find-text  --app com.tencent.xinWeChat --text 通讯录
 cua click-text --app com.tencent.xinWeChat --text 通讯录   # 切到通讯录页
 cua find-text  --app com.tencent.xinWeChat --text 搜索 --ocr-only   # 强制 OCR 定位
 ```
+
+## 4.6 后台执行与系统预览
+
+默认**不抢前台、不移动物理光标**：
+
+- 语义动作走 AX（`AXPress` / `AXValue` / selection），对后台 App 生效；
+- 坐标与键盘走 `CGEventPostToPid` 定向投递（目标 App 收事件，前台 App 与真实光标不受影响）；
+- 需要「真的把窗口拿到前台」时才用 `cua --activate <command>`（或在 MCP/JS 里 `set_options {activate:true}`）。
+
+截图走**常驻 SCStream**（每窗口 2fps，空闲 20s 自动停），因此 macOS 会显示你熟悉的那种
+「正在共享 / 停止共享」系统预览小窗，而不是一闪而过的录屏指示。这也和原版 Codex
+（逆向证据：ControlCenter `contentSharing` 流、`SCStream` 符号）一致。
+
+```bash
+cua state --app com.tencent.xinWeChat          # 后台读取，Chrome 保持前台
+cua click-text --app com.tencent.xinWeChat --text 通讯录   # 后台投递（部分 App 不响应鼠标）
+cua --activate click-text --app com.tencent.xinWeChat --text 通讯录  # 显式允许接管前台
+```
+
+> 已知边界：微信侧边栏等按钮不响应 pid 定向的鼠标事件（原版靠私有合成焦点让它们响应），
+> 这类操作在后台会「成功但界面不变」，需要 `--activate`；纯 AX 操作（写输入框、部分按钮）后台可用。
 
 ## 5. 逆向报告
 

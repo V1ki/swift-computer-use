@@ -88,6 +88,7 @@ export function createSky({ socketPath, home, autoConnect = true } = {}) {
         text: state.text ?? '', accessibility: state.accessibility ?? null,
       };
     },
+    async set_options(params = {}) { return rpc('setOptions', params); },
     async find_text(params = {}) { return rpc('findText', params); },
     async click_text(params = {}) { return rpc('clickText', params); },
     async capture_screenshot(params = {}) {

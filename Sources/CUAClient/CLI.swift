@@ -6,7 +6,7 @@ struct CLIArguments {
     var positionals: [String] = []
     var options: [String: String] = [:]
     var flags: Set<String> = []
-    static let booleanOptions: Set<String> = ["json", "windows", "no-screenshot", "no-text", "exact", "no-ocr", "ocr-only", "help", "version"]
+    static let booleanOptions: Set<String> = ["json", "windows", "no-screenshot", "no-text", "exact", "no-ocr", "ocr-only", "activate", "help", "version"]
     static let valueOptions: Set<String> = ["socket", "timeout", "app", "query", "window", "screenshot-out", "out", "display", "element", "x", "y", "count", "button", "key", "duration-ms", "text", "direction", "pages", "value", "from-x", "from-y", "to-x", "to-y", "format", "prefix", "suffix", "selection", "action", "session", "limit"]
 
     init(_ arguments: [String]) throws {
@@ -40,7 +40,7 @@ struct CLIArguments {
         return value
     }
     func allow(_ names: Set<String>, positionals count: ClosedRange<Int> = 1...1) throws {
-        let common: Set<String> = ["json", "socket", "timeout", "help"]
+        let common: Set<String> = ["json", "socket", "timeout", "activate", "help"]
         let unknown = Set(options.keys).union(flags).subtracting(names.union(common))
         guard unknown.isEmpty else { throw Self.invalid("Unsupported option(s): \(unknown.sorted().map { "--" + $0 }.joined(separator: ", "))") }
         guard count.contains(positionals.count) else { throw Self.invalid("Unexpected or missing positional arguments") }
@@ -79,6 +79,7 @@ enum CUACommandLine {
       session list                 本地 sessions/*.toml 清单
       doctor                       socket / ping / 权限 / 版本 checklist
       mcp                          MCP stdio server (newline-delimited JSON)
+      --activate                    allow raising the target app (default: background)
       --version | help
 
     App-targeted commands also accept --window ID and --session ID.
@@ -106,6 +107,9 @@ enum CUACommandLine {
     static func run(_ arguments: [String]) async -> Int32 {
         do {
             let args = try CLIArguments(arguments)
+            if args.flags.contains("activate") {
+                try args.allow(["activate"], positionals: 1...3)
+            }
             if args.flags.contains("version") {
                 try args.allow(["version"], positionals: 0...0)
                 let version: JSONValue = .object(["version": .string(CUAProtocolVersion.serviceVersion), "apiVersion": .string(CUAProtocolVersion.current)])
