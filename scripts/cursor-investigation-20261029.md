@@ -14,7 +14,8 @@ Independent control evidence shows concurrent hardware/unattributed input (sourc
 - The current WeChat main window had changed to `(747,-906,786,635)`, unlike the reported historical `(1512,-1410,1080,1890)`. No window resizing/activation was performed to recreate the old layout.
 - Isolated service PID 50125, TextEdit `state/set-value/press-key`: each Δ=0 at `(382.0195,-493.1289)`, Chrome unchanged. Unified log: `setValue globalPosts=0`, `pressKey globalPosts=0 pidPosts=2`.
 - Same service, knight self-chat `state/set-value/press-key`: each Δ=0 at `(883.0547,592.0391)`, Chrome unchanged.
-- Later final-binary tests correctly **failed** during input activity. One attributed TextEdit run: read-only `state` Δ=589.449 pixels with **95 sourcePID=0** events; set-value and Return Δ=0, no mouse events. Frontmost unchanged. This demonstrates why endpoint-only validation must not be treated as process attribution.
+- Final integrated TextEdit rerun **passed** with the final binary: all three steps Δ=0 at `(1299.5898,833.8320)`, Chrome unchanged, **zero tap events** throughout each step; evidence `/tmp/swiftcua-cursor.pUBmFj/steps.json` and `events.jsonl`.
+- Other final-binary tests correctly **failed** during input activity. One attributed TextEdit run: read-only `state` Δ=589.449 pixels with **95 sourcePID=0** events; set-value and Return Δ=0, no mouse events. Frontmost unchanged. This demonstrates why endpoint-only validation must not be treated as process attribution.
 - Earlier nonempty knight draft was refused rather than overwritten. When re-inspected it was empty; only then were self-chat probes run. No group/third-party recipient was tested. The probes test API delivery, not confirmation of message delivery.
 
 ## Changes
