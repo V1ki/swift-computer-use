@@ -107,9 +107,6 @@ enum CUACommandLine {
     static func run(_ arguments: [String]) async -> Int32 {
         do {
             let args = try CLIArguments(arguments)
-            if args.flags.contains("activate") {
-                try args.allow(["activate"], positionals: 1...3)
-            }
             if args.flags.contains("version") {
                 try args.allow(["version"], positionals: 0...0)
                 let version: JSONValue = .object(["version": .string(CUAProtocolVersion.serviceVersion), "apiVersion": .string(CUAProtocolVersion.current)])
@@ -127,6 +124,10 @@ enum CUACommandLine {
                 timeout = parsed
             } else { timeout = 30 }
             let client = SocketClient(socketPath: args.options["socket"], timeout: timeout)
+            if args.flags.contains("activate") {
+                // 显式前台模式：仅本次 CLI 调用前下发，默认仍是后台投递。
+                _ = try? await client.send(method: "setOptions", params: .object(["activate": .bool(true)]))
+            }
             switch command {
             case "mcp":
                 try args.allow([])

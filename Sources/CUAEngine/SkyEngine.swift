@@ -194,8 +194,13 @@ public actor SkyEngine: CUAEngine {
         }
         let point = Coordinates.global(CUAPoint(x: match.rect.x + match.rect.width / 2,
                                                 y: match.rect.y + match.rect.height / 2), in: target.bounds)
-        try InputSynthesis.click(at: point, button: .left, count: params.clickCount ?? 1, flags: [], duration: 20,
-                                 pid: running.processIdentifier)
+        if allowActivation {
+            try InputSynthesis.click(at: point, button: .left, count: params.clickCount ?? 1, flags: [], duration: 20)
+        } else {
+            throw CUAError(code: .inputRejected,
+                           message: "Background coordinate click is not supported by macOS public APIs; rerun with --activate",
+                           data: .object(["hint": .string("cua --activate ...")]))
+        }
         return match
     }
 
@@ -410,15 +415,20 @@ public actor SkyEngine: CUAEngine {
                            message: "Background coordinate click is not supported by macOS public APIs; rerun with --activate",
                            data: .object(["hint": .string("cua --activate ...")]))
         }
-        try InputSynthesis.click(at: location, button: button, count: count, flags: flags, duration: duration,
-                                 pid: app.processIdentifier)
+        if allowActivation {
+            try InputSynthesis.click(at: location, button: button, count: count, flags: flags, duration: duration)
+        } else {
+            try InputSynthesis.click(at: location, button: button, count: count, flags: flags, duration: duration,
+                                     pid: app.processIdentifier)
+        }
     }
 
     public func pressKey(_ params: PressKeyParams) async throws {
         let chord = try KeyChord.parse(params.key)
         let duration = try InputSynthesis.duration(params.durationMilliseconds)
         let app = try prepareTarget(params.app, windowID: params.windowId)
-        try InputSynthesis.key(chord, duration: duration, pid: app.processIdentifier)
+        if allowActivation { try InputSynthesis.key(chord, duration: duration) }
+        else { try InputSynthesis.key(chord, duration: duration, pid: app.processIdentifier) }
     }
 
     public func typeText(_ params: TypeTextParams) async throws {
@@ -433,7 +443,8 @@ public actor SkyEngine: CUAEngine {
             }
             try focus(element, pid: app.processIdentifier)
         }
-        try InputSynthesis.text(params.text, pid: app.processIdentifier)
+        if allowActivation { try InputSynthesis.text(params.text) }
+        else { try InputSynthesis.text(params.text, pid: app.processIdentifier) }
     }
 
     public func scroll(_ params: ScrollParams) async throws {
@@ -453,8 +464,16 @@ public actor SkyEngine: CUAEngine {
             }
         }
         guard dx.isFinite, dy.isFinite, abs(dx) <= 1_000_000, abs(dy) <= 1_000_000 else { throw CUAError.invalidParams("Scroll deltas are out of range", method: "scroll") }
-        // CG 的正值是上/左；协议的正值是下/右；定向投递到目标进程。
-        try InputSynthesis.scroll(at: location, dx: dx, dy: dy, pid: app.processIdentifier)
+        // CG 的正值是上/左；协议的正值是下/右。
+        if allowActivation {
+            try InputSynthesis.mouse(.mouseMoved, at: location)
+            let event = CGEvent(scrollWheelEvent2Source: nil, units: .pixel, wheelCount: 2,
+                                wheel1: Int32(-dy), wheel2: Int32(-dx), wheel3: 0)
+            event?.location = location
+            try InputSynthesis.post(event)
+        } else {
+            try InputSynthesis.scroll(at: location, dx: dx, dy: dy, pid: app.processIdentifier)
+        }
     }
 
     public func setValue(_ params: SetValueParams) async throws {
@@ -464,22 +483,40 @@ public actor SkyEngine: CUAEngine {
         if status == .success { return }
         if status == .invalidUIElement || status == .cannotComplete { try AXAccess.check(status, context: "Set value") }
         try focus(element, pid: app.processIdentifier)
-        try InputSynthesis.key(KeyChord.parse("Cmd+a"), pid: app.processIdentifier)
-        if params.value.isEmpty { try InputSynthesis.key(KeyChord.parse("BackSpace"), pid: app.processIdentifier) }
-        else { try InputSynthesis.text(params.value, pid: app.processIdentifier) }
+        if allowActivation {
+            try InputSynthesis.key(KeyChord.parse("Cmd+a"))
+            if params.value.isEmpty { try InputSynthesis.key(KeyChord.parse("BackSpace")) }
+            else { try InputSynthesis.text(params.value) }
+        } else {
+            try InputSynthesis.key(KeyChord.parse("Cmd+a"), pid: app.processIdentifier)
+            if params.value.isEmpty { try InputSynthesis.key(KeyChord.parse("BackSpace"), pid: app.processIdentifier) }
+            else { try InputSynthesis.text(params.value, pid: app.processIdentifier) }
+        }
     }
 
     public func drag(_ params: DragParams) async throws {
         let app = try prepareTarget(params.app, windowID: params.windowId)
         let start = try point(app: app, index: nil, x: params.fromX, y: params.fromY, windowID: params.windowId)
         let end = try point(app: app, index: nil, x: params.toX, y: params.toY, windowID: params.windowId)
-        try InputSynthesis.drag(from: start, to: end, pid: app.processIdentifier)
+        if allowActivation {
+            try InputSynthesis.mouse(.leftMouseDown, at: start)
+            defer { try? InputSynthesis.mouse(.leftMouseUp, at: end) }
+            for step in 1...24 {
+                InputSynthesis.pause(15)
+                let t = Double(step) / 24
+                try InputSynthesis.mouse(.leftMouseDragged, at: CGPoint(x: start.x + (end.x - start.x) * t,
+                                                                       y: start.y + (end.y - start.y) * t))
+            }
+        } else {
+            try InputSynthesis.drag(from: start, to: end, pid: app.processIdentifier)
+        }
     }
 
     public func paste(_ params: PasteParams) async throws {
         guard let format = CUAPasteFormat(rawValue: params.format ?? "text") else { throw CUAError.invalidParams("Invalid paste format", method: "paste") }
         let app = try prepareTarget(params.app, windowID: params.windowId)
-        try InputSynthesis.paste(params.text, format: format, pid: app.processIdentifier)
+        if allowActivation { try InputSynthesis.paste(params.text, format: format) }
+        else { try InputSynthesis.paste(params.text, format: format, pid: app.processIdentifier) }
     }
 
     public func selectText(_ params: SelectTextParams) async throws {
@@ -499,9 +536,15 @@ public actor SkyEngine: CUAEngine {
         let before = ns.substring(to: range.location).count
         let count = ns.substring(with: NSRange(location: range.location, length: range.length)).count
         guard before + count <= 4000 else { throw CUAError(code: .inputRejected, message: "Keyboard selection fallback exceeds 4000 characters") }
-        try InputSynthesis.key(KeyChord.parse("Cmd+Home"), pid: app.processIdentifier)
-        for _ in 0..<before { try InputSynthesis.key(KeyChord.parse("Right"), duration: 0, pid: app.processIdentifier) }
-        for _ in 0..<count { try InputSynthesis.key(KeyChord.parse("Shift+Right"), duration: 0, pid: app.processIdentifier) }
+        if allowActivation {
+            try InputSynthesis.key(KeyChord.parse("Cmd+Home"))
+            for _ in 0..<before { try InputSynthesis.key(KeyChord.parse("Right"), duration: 0) }
+            for _ in 0..<count { try InputSynthesis.key(KeyChord.parse("Shift+Right"), duration: 0) }
+        } else {
+            try InputSynthesis.key(KeyChord.parse("Cmd+Home"), pid: app.processIdentifier)
+            for _ in 0..<before { try InputSynthesis.key(KeyChord.parse("Right"), duration: 0, pid: app.processIdentifier) }
+            for _ in 0..<count { try InputSynthesis.key(KeyChord.parse("Shift+Right"), duration: 0, pid: app.processIdentifier) }
+        }
     }
 
     public func performSecondaryAction(_ params: PerformSecondaryActionParams) async throws {
