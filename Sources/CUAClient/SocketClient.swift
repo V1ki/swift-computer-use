@@ -6,6 +6,7 @@ import CUACore
 struct ClientError: Error, LocalizedError, Sendable {
     let code: Int
     let message: String
+    var data: JSONValue? = nil
     var errorDescription: String? { "[\(code)] \(message)" }
 }
 
@@ -79,7 +80,7 @@ final class SocketClient: @unchecked Sendable {
                     }
                     var outgoing = method == "ping" ? (params ?? self.pingParams) : params
                     // 服务握手分配会话；仅为已知且支持会话的方法补齐，不改变 call 的未知方法。
-                    let sessionMethods: Set<String> = ["listApps", "getAppState", "click", "pressKey", "typeText", "scroll", "setValue", "drag", "paste", "selectText", "performSecondaryAction", "captureScreenshot", "findText", "clickText"]
+                    let sessionMethods: Set<String> = ["listApps", "getAppState", "click", "pressKey", "typeText", "scroll", "setValue", "drag", "paste", "selectText", "performSecondaryAction", "captureScreenshot", "findText", "clickText", "searchText", "openChat", "readChat", "sendText"]
                     if sessionMethods.contains(method), let sessionId = self.sessionId,
                        outgoing == nil || outgoing?.objectValue != nil {
                         var object = outgoing?.objectValue ?? [:]
@@ -207,7 +208,7 @@ final class SocketClient: @unchecked Sendable {
                 guard response.jsonrpc == "2.0", (envelope["result"] != nil) != (envelope["error"] != nil) else {
                     throw ClientError(code: -32600, message: "Malformed JSON-RPC response from service")
                 }
-                if let error = response.error { throw ClientError(code: error.code, message: error.message) }
+                if let error = response.error { throw ClientError(code: error.code, message: error.message, data: error.data) }
                 let result = response.result ?? .null
                 if method == "ping" {
                     handshaken = true

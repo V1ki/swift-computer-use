@@ -1,0 +1,178 @@
+Google Chrome, 1522
+2026-10-29T04:13:19Z before NSWorkspace=Google Chrome PID=1522
+0 AXWindow title=knight value= desc=
+1  AXStaticText title= value=knight desc=
+2   AXStaticText title= value=knight desc=
+3  AXButton title=聊天记录 value= desc=
+4   AXButton title= value= desc=
+5  AXButton title=从手机导入聊天记录 value= desc=
+6   AXButton title= value= desc=
+7  AXButton title=语音通话 value= desc=
+8   AXButton title= value= desc=
+9  AXButton title=聊天信息 value= desc=
+10   AXButton title= value= desc=
+11  AXSplitGroup title= value= desc=
+12   AXTextArea title=输入 value= desc=
+13   AXButton title=发送表情(⌥⌘E) value= desc=
+14    AXButton title= value= desc=
+15   AXButton title=发送收藏 value= desc=
+16    AXButton title= value= desc=
+17   AXButton title=发送文件 value= desc=
+18    AXButton title= value= desc=
+19   AXButton title=截图(⌃⌘A) value= desc=
+20    AXButton title= value= desc=
+21   AXButton title=隐藏窗口截图 value= desc=
+22    AXButton title= value= desc=
+23   AXButton title=微信语音输入文字 value= desc=
+24    AXButton title=微信语音输入文字 value= desc=
+25     AXButton title= value= desc=
+26   AXButton title=发语音 ( 按住右 ⌥ ) value= desc=
+27    AXButton title= value= desc=
+28   AXButton title=发送 value= desc=
+29    AXStaticText title= value=发送 desc=
+30   AXList title=消息 value= desc=
+31    AXStaticText title= value= desc=
+32    AXStaticText title= value= desc=
+33    AXStaticText title= value= desc=
+34    AXStaticText title= value= desc=
+35    AXStaticText title= value= desc=
+36    AXStaticText title= value= desc=
+37    AXStaticText title= value= desc=
+38    AXStaticText title= value= desc=
+39    AXStaticText title= value= desc=
+40    AXStaticText title= value= desc=
+41    AXStaticText title= value= desc=
+42    AXStaticText title= value= desc=
+43    AXStaticText title= value= desc=
+44    AXStaticText title= value= desc=
+45    AXStaticText title= value= desc=
+46    AXStaticText title= value= desc=
+47    AXStaticText title= value= desc=
+48    AXStaticText title= value= desc=
+49    AXStaticText title= value= desc=
+50    AXStaticText title= value= desc=
+51    AXStaticText title= value= desc=
+52    AXStaticText title= value= desc=
+53    AXStaticText title= value= desc=
+54    AXStaticText title= value= desc=
+55    AXStaticText title= value= desc=
+56    AXStaticText title= value= desc=
+57    AXStaticText title= value= desc=
+58    AXStaticText title= value= desc=
+59    AXStaticText title= value= desc=
+60    AXStaticText title= value= desc=
+61    AXStaticText title= value= desc=
+62    AXStaticText title= value= desc=
+63    AXStaticText title= value= desc=
+64    AXStaticText title= value= desc=
+65    AXStaticText title= value= desc=
+66    AXStaticText title= value= desc=
+67    AXStaticText title= value= desc=
+68    AXStaticText title= value= desc=
+69    AXStaticText title= value= desc=
+70    AXStaticText title= value= desc=
+71    AXStaticText title= value= desc=
+72    AXStaticText title= value= desc=
+73    AXStaticText title=11:40 value= desc=
+74    AXStaticText title=SwiftCUA cursor probe 2026-10-29T03:40:29Z value= desc=
+75    AXStaticText title=SwiftCUA cursor probe 2026-10-29T03:41:32Z value= desc=
+76    AXStaticText title=SwiftCUA background cursor verification value= desc=
+77    AXStaticText title=11:46 value= desc=
+78    AXStaticText title=SwiftCUA background cursor verification value= desc=
+79   AXGrowArea title= value= desc=
+80  AXButton title=置顶 value= desc=
+81   AXButton title= value= desc=
+82  AXButton title= value= desc=
+83  AXButton title= value= desc=
+84   AXGroup title= value= desc=
+85    AXGroup title= value= desc=
+86  AXButton title= value= desc=
+87 AXWindow title=微信 value= desc=
+88  AXGroup title= value= desc=
+89   AXButton title=微信 value= desc=1条新消息
+90    AXButton title= value= desc=
+91   AXButton title=通讯录 value= desc=通讯录
+92    AXButton title= value= desc=
+93   AXButton title=收藏 value= desc=收藏
+94    AXButton title= value= desc=
+95   AXButton title=发现 value= desc=1条新消息
+96    AXButton Google Chrome, 1522
+title= value= desc=
+97   AXButton title=手机 value= desc=
+98    AXButton title=手机 value= desc=
+99     AXButton title= value= desc=
+100   AXButton title=更多 value= desc=
+101    AXButton title=更多 value= desc=
+102     AXButton title= value= desc=
+103   AXSplitGroup title= value= desc=
+104    AXSplitGroup title= value= desc=
+105     AXGroup title= value= desc=
+106      AXSplitGroup title= value= desc=
+107       AXGroup title= value= desc=
+108        AXButton title= value= desc=
+109     AXGroup title= value= desc=
+110      AXButton title= value= desc=
+111      AXTextArea title=搜索 value= desc=
+112     AXButton title=快捷操作 value= desc=
+113      AXButton title= value= desc=
+114     AXList title=会话 value= desc=
+115      AXStaticText title= value= desc=
+116      AXStaticText title=文件传输助手
+已置顶
+Codex
+12:00
+ value= desc=
+117      AXStaticText title=knight
+已置顶
+SwiftCUA background cursor verification
+11:46
+ value= desc=
+118      AXStaticText title=微信支付
+已置顶
+优惠已使用，本次节省¥1
+昨天 10:15
+ value= desc=
+119      AXStaticText title=微信ClawBot
+已置顶
+对，而且这不应该只是模型选型后的一个小备注，而应该纳入完整方法论： 真正的选型单位，不只是“模型”，而…
+08/27
+ value= desc=
+120      AXStaticText title=实时AI快讯 7群
+[3条] Ai雪原充值: 出ccmax20x美国实卡充值免过K帐密邮箱+密码+2fa+iP
+12:13
+消息免打扰
+ value= desc=
+121      AXStaticText title=JCL¹觉察流🦉context≈intent≈convergence
+[5条] 瞅哈@准备当个临时工: 我搞了个claude的新号，一般多久会封？20刀先试水？
+12:12
+消息免打扰
+ value= desc=
+122      AXStaticText title=Codex 零号远征队
+[63条] 公子💫⁶ᴳ: [动画表情] 
+12:11
+消息免打扰
+ value= desc=
+123      AXStaticText title=相亲相爱
+[1条] 
+万小猪21: [视频号] 喆FILM的动态
+12:09
+ value= desc=
+124      AXStaticText title=LLaMA Factory交流群98
+[5条] Shadow: [图片] 
+12:07
+消息免打扰
+ value= desc=
+125      AXStaticText title=cc封号codex降智难民营
+[7条] Misaya: [好的]
+12:06
+消息免打扰
+ value= desc=
+126     AXGrowArea title= value= desc=
+127  AXButton title= value= desc=
+128  AXButton title= value= desc=
+129   AXGroup title= value= desc=
+130    AXGroup title= value= desc=
+131  AXButton title= value= desc=
+focused element=Optional(<AXUIElement 0x7831b20cf0> {pid=41969})
+focused role=AXTextArea title=输入 value=
+2026-10-29T04:13:19Z after NSWorkspace=Google Chrome PID=1522

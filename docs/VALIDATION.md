@@ -343,3 +343,44 @@ $ cua screenshot --window 152   # 触发窗口流
 - 后台 AX 写输入框可用；但**后台 Return 并没有把消息发出去**（实测文字仍留在输入框，
   随后已清空草稿），点「发送」按钮属鼠标点击，仍需 `--activate`；
 - 因此能力矩阵维持：读 + AX 写值可后台；搜索/切会话/点发送必须前台。
+
+## 12. 后台会话 API 实现及失败关闭实测（2026-10-29 12:04–12:17 +08:00）
+
+本节是新的独立验证，不将历史成功线索当作本轮成功证据。**目标群打开、最新 8–12 条群消息、文件传输助手发送均未验证成功。** 没有给目标群发消息，没有使用 activate / AXRaise / kAXFrontmost / orderFront，没有重启或 kill 用户进程。
+
+### 12.1 新增能力与测试
+
+- Core/Engine/Service: `searchText` / `openChat` / `readChat` / `sendText`，CLI 对应 `search-text` / `open-chat` / `read-chat` / `send`。
+- 强制后台 task-local policy；每个原语边界双采样 NSWorkspace + System Events；语义 AX 定位不依赖屏幕几何或脆弱数字索引。
+- 发送仅允许 `knight` / `文件传输助手`，精确窗口或 composer 标题校验，拒绝覆盖草稿，发送一次并要求新增消息行 + composer 清空。
+- 纯逻辑新增 5 测试：唯一精确结果、白名单与标题、发送后验证、禁止全局鼠标、协议 round-trip。
+- `swift build --scratch-path .build-chat` exit 0；`swift test --scratch-path .build-chat` exit 0，60 tests / 0 failures（17 service + 26 engine + 2 core + 15 client）。见 [构建日志](<chat-build.log>)、[测试日志](<chat-tests.log>)。
+- 采用临时独立 socket/headless 验证服务，未替换安装版。新命令使用说明见 [后台聊天文档](<BACKGROUND_CHAT.md>)。
+
+### 12.2 操作路径和前台证据
+
+| 路径 | 原语及结果 | 证据 |
+|---|---|---|
+| 首次群名搜索 | AXValue=完整群名成功；数字索引被新增清空按钮偏移，focus 命中错误元素。没有发送。改成每次语义定位。 | [初始 AX 树](<chat-probe-initial.log>)、[首次 focus](<chat-probe-search-focus.log>) |
+| 语义搜索 | AXValue + AXFocused 成功且 read-back 为搜索框；PID Space/Delete 没有结果列表变化 | [结果](<chat-probe-retry-results.log>)、[焦点属性](<chat-probe-focused-inspect.log>) |
+| 安装版 CLI | 后台 Space/BackSpace 返回 OK，但无导航效果 | [结果](<chat-probe-service-after.log>) |
+| Down/Return | 搜索框内 PID 键导航无效果，当前聊天仍 knight | [结果](<chat-probe-open-result.log>) |
+| 会话行 AX | AXSelected/AXPress 没有打开目标群 | [操作](<chat-probe-select.log>)、[结果](<chat-probe-select-result.log>) |
+| 复现“文件”路径 | AXValue=文件 + AXFocused + PID Space/Delete，没有独立文件传输助手窗口 | [结果](<chat-probe-file-result.log>) |
+| 新 open-chat | 精确群名 -> 搜索 -> 精确行 AXPress -> guarded Down/Return -> 标题校验失败，拒绝前台 fallback | [命令结果](<chat-command-open.log>)、[操作前](<chat-command-before.log>)、[操作后](<chat-command-after.log>) |
+| 新 send 文件传输助手 | 在导航阶段失败关闭，未写 composer，未发送 | [结果](<chat-send-result.log>) |
+| 新 read-chat knight | 独立 AXWindow=knight，AXTextArea=输入，AXList=消息 -> AXStaticText；只读成功 | [带时间戳结果](<chat-read-knight.log>) |
+
+上表前后 probe 的 NSWorkspace / System Events 均记录 Chrome PID 1522。最后一条成功只读 `capturedAt=2026-10-29T04:15:41Z`，两个观察源均 Chrome 1522。
+
+**不能声称整个时间段微信从未前台。** 04:15:49Z 新 send knight 在任何 AX 写或键事件之前，begin 护栏发现 NSWorkspace=Chrome1522、System Events=WeChat41969，立即中止，见 [拒绝证据](<chat-send-knight.log>)。本代理没有发出激活操作；期间还出现未由本代理设置的搜索词“零号”和独立 knight 窗口，提示外部并发操作，但原因无法确定。之后 Chrome 恢复，04:16:29Z 微信 AXWindows 已为空，见 [最终只读观察](<chat-current.log>)。无法在这个状态继续可靠导航。
+
+### 12.3 群消息证据与缺口
+
+本轮只能从会话列表看到目标群预览，**不是打开群后的最新消息列表**：
+- 12:04：鳄策异辉 Rich：不知道这边服务员多少钱一个月，都很年轻漂亮。
+- 随后预览：鳄策异辉 Rich：天天带几台电脑在水疗上班真的不错。
+
+对应证据分别是 [初始树](<chat-probe-initial.log>) 和 [语义搜索后树](<chat-probe-retry-results.log>)。群聊天窗口标题/消息列表、8–12 条完整消息和 sender 都未取得，不编造。
+
+残余风险：后台 PID 键在当前微信状态可能 no-op；AX 虚拟消息行可能空；独立窗 sender 未暴露；前台采样非连续证明；同名联系人不是强身份认证；低层旧 API 仍需调用方遵守发送限制。新 API 是保守实验适配层，不是已实测成功的后台微信导航解决方案。

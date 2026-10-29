@@ -1,0 +1,196 @@
+Building for debugging...
+[Using on-disk description]
+[1 / 32]
+Build complete! (0.41秒)
+Test Suite 'All tests' started at 2026-10-29 12:18:44.070.
+Test Suite 'CUAServiceTests.xctest' started at 2026-10-29 12:18:44.071.
+Test Suite 'PreviewUITests' started at 2026-10-29 12:18:44.071.
+Test Case '-[CUAServiceTests.PreviewUITests testClampSupportsNegativeScreenCoordinates]' started.
+Test Case '-[CUAServiceTests.PreviewUITests testClampSupportsNegativeScreenCoordinates]' passed (0.000 seconds).
+Test Case '-[CUAServiceTests.PreviewUITests testHeadlessFlagAndEnvironmentWithoutCreatingApplication]' started.
+Test Case '-[CUAServiceTests.PreviewUITests testHeadlessFlagAndEnvironmentWithoutCreatingApplication]' passed (0.000 seconds).
+Test Case '-[CUAServiceTests.PreviewUITests testOversizedPanelAnchorsToVisibleOrigin]' started.
+Test Case '-[CUAServiceTests.PreviewUITests testOversizedPanelAnchorsToVisibleOrigin]' passed (0.000 seconds).
+Test Case '-[CUAServiceTests.PreviewUITests testTitleUsesAppOrWindowID]' started.
+Test Case '-[CUAServiceTests.PreviewUITests testTitleUsesAppOrWindowID]' passed (0.000 seconds).
+Test Suite 'PreviewUITests' passed at 2026-10-29 12:18:44.073.
+	 Executed 4 tests, with 0 failures (0 unexpected) in 0.001 (0.002) seconds
+Test Suite 'ServiceTests' started at 2026-10-29 12:18:44.073.
+Test Case '-[CUAServiceTests.ServiceTests testAuthorizationPendingAndExplicitApproval]' started.
+Test Case '-[CUAServiceTests.ServiceTests testAuthorizationPendingAndExplicitApproval]' passed (0.004 seconds).
+Test Case '-[CUAServiceTests.ServiceTests testConfigurationAndCommandLine]' started.
+Test Case '-[CUAServiceTests.ServiceTests testConfigurationAndCommandLine]' passed (0.001 seconds).
+Test Case '-[CUAServiceTests.ServiceTests testEndSessionDeletesFileAndResetsEngine]' started.
+Test Case '-[CUAServiceTests.ServiceTests testEndSessionDeletesFileAndResetsEngine]' passed (0.001 seconds).
+Test Case '-[CUAServiceTests.ServiceTests testLengthPrefixFragmentationAndOversize]' started.
+Test Case '-[CUAServiceTests.ServiceTests testLengthPrefixFragmentationAndOversize]' passed (0.001 seconds).
+Test Case '-[CUAServiceTests.ServiceTests testListAppsAndDeadline]' started.
+Test Case '-[CUAServiceTests.ServiceTests testListAppsAndDeadline]' passed (0.014 seconds).
+Test Case '-[CUAServiceTests.ServiceTests testPeerPolicyDefaultsAndAllowLists]' started.
+Test Case '-[CUAServiceTests.ServiceTests testPeerPolicyDefaultsAndAllowLists]' passed (0.001 seconds).
+Test Case '-[CUAServiceTests.ServiceTests testPermissionGateAndMissingSession]' started.
+Test Case '-[CUAServiceTests.ServiceTests testPermissionGateAndMissingSession]' passed (0.002 seconds).
+Test Case '-[CUAServiceTests.ServiceTests testPingReturnsServerInfoAndGeneratedSession]' started.
+Test Case '-[CUAServiceTests.ServiceTests testPingReturnsServerInfoAndGeneratedSession]' passed (0.001 seconds).
+Test Case '-[CUAServiceTests.ServiceTests testSessionPathTraversalRejected]' started.
+Test Case '-[CUAServiceTests.ServiceTests testSessionPathTraversalRejected]' passed (0.001 seconds).
+Test Case '-[CUAServiceTests.ServiceTests testSocketPermissionsSingleInstanceAndFragmentedJSON]' started.
+listening on /tmp/scua-3A1A01BB/IPC/2E11F41D.sock
+Test Case '-[CUAServiceTests.ServiceTests testSocketPermissionsSingleInstanceAndFragmentedJSON]' passed (0.004 seconds).
+Test Case '-[CUAServiceTests.ServiceTests testStaleSocketReplacedAndIdleConnectionClosed]' started.
+listening on /tmp/scua-C0966C2E/IPC/stale.sock
+Test Case '-[CUAServiceTests.ServiceTests testStaleSocketReplacedAndIdleConnectionClosed]' passed (0.053 seconds).
+Test Case '-[CUAServiceTests.ServiceTests testTTLRemovesPersistedSession]' started.
+Test Case '-[CUAServiceTests.ServiceTests testTTLRemovesPersistedSession]' passed (0.002 seconds).
+Test Case '-[CUAServiceTests.ServiceTests testUnknownMethodAndInvalidRequests]' started.
+Test Case '-[CUAServiceTests.ServiceTests testUnknownMethodAndInvalidRequests]' passed (0.001 seconds).
+Test Suite 'ServiceTests' passed at 2026-10-29 12:18:44.160.
+	 Executed 13 tests, with 0 failures (0 unexpected) in 0.086 (0.087) seconds
+Test Suite 'CUAServiceTests.xctest' passed at 2026-10-29 12:18:44.160.
+	 Executed 17 tests, with 0 failures (0 unexpected) in 0.087 (0.089) seconds
+Test Suite 'All tests' passed at 2026-10-29 12:18:44.160.
+	 Executed 17 tests, with 0 failures (0 unexpected) in 0.087 (0.089) seconds
+Test Suite 'All tests' started at 2026-10-29 12:18:44.235.
+Test Suite 'CUAEngineTests.xctest' started at 2026-10-29 12:18:44.236.
+Test Suite 'ChatSafetyTests' started at 2026-10-29 12:18:44.236.
+Test Case '-[CUAEngineTests.ChatSafetyTests testBackgroundChatScopeRejectsGlobalMouse]' started.
+Test Case '-[CUAEngineTests.ChatSafetyTests testBackgroundChatScopeRejectsGlobalMouse]' passed (0.035 seconds).
+Test Case '-[CUAEngineTests.ChatSafetyTests testChatProtocolRoundTrip]' started.
+Test Case '-[CUAEngineTests.ChatSafetyTests testChatProtocolRoundTrip]' passed (0.000 seconds).
+Test Case '-[CUAEngineTests.ChatSafetyTests testExactFirstLineAndUniqueSelection]' started.
+Test Case '-[CUAEngineTests.ChatSafetyTests testExactFirstLineAndUniqueSelection]' passed (0.000 seconds).
+Test Case '-[CUAEngineTests.ChatSafetyTests testSendRequiresAllowlistAndExactTitle]' started.
+Test Case '-[CUAEngineTests.ChatSafetyTests testSendRequiresAllowlistAndExactTitle]' passed (0.000 seconds).
+Test Case '-[CUAEngineTests.ChatSafetyTests testSendVerificationRequiresNewExactMessageAndClearedDraft]' started.
+Test Case '-[CUAEngineTests.ChatSafetyTests testSendVerificationRequiresNewExactMessageAndClearedDraft]' passed (0.000 seconds).
+Test Suite 'ChatSafetyTests' passed at 2026-10-29 12:18:44.272.
+	 Executed 5 tests, with 0 failures (0 unexpected) in 0.035 (0.036) seconds
+Test Suite 'EngineUtilitiesTests' started at 2026-10-29 12:18:44.272.
+Test Case '-[CUAEngineTests.EngineUtilitiesTests testCoordinatesPreserveNegativeOriginsAndSeparateScale]' started.
+Test Case '-[CUAEngineTests.EngineUtilitiesTests testCoordinatesPreserveNegativeOriginsAndSeparateScale]' passed (0.000 seconds).
+Test Case '-[CUAEngineTests.EngineUtilitiesTests testIndexExpiryAndIdentity]' started.
+Test Case '-[CUAEngineTests.EngineUtilitiesTests testIndexExpiryAndIdentity]' passed (0.000 seconds).
+Test Case '-[CUAEngineTests.EngineUtilitiesTests testInvalidKeyChords]' started.
+Test Case '-[CUAEngineTests.EngineUtilitiesTests testInvalidKeyChords]' passed (0.000 seconds).
+Test Case '-[CUAEngineTests.EngineUtilitiesTests testKeyChords]' started.
+Test Case '-[CUAEngineTests.EngineUtilitiesTests testKeyChords]' passed (0.000 seconds).
+Test Case '-[CUAEngineTests.EngineUtilitiesTests testNestedTreeStatesActionsAndFrames]' started.
+Test Case '-[CUAEngineTests.EngineUtilitiesTests testNestedTreeStatesActionsAndFrames]' passed (0.000 seconds).
+Test Case '-[CUAEngineTests.EngineUtilitiesTests testQueryPreservesAncestorsAndIndices]' started.
+Test Case '-[CUAEngineTests.EngineUtilitiesTests testQueryPreservesAncestorsAndIndices]' passed (0.000 seconds).
+Test Case '-[CUAEngineTests.EngineUtilitiesTests testSelectionOffsetsUseUTF16AndContext]' started.
+Test Case '-[CUAEngineTests.EngineUtilitiesTests testSelectionOffsetsUseUTF16AndContext]' passed (0.000 seconds).
+Test Case '-[CUAEngineTests.EngineUtilitiesTests testTruncationEscapingHiddenAndInvalidNodes]' started.
+Test Case '-[CUAEngineTests.EngineUtilitiesTests testTruncationEscapingHiddenAndInvalidNodes]' passed (0.000 seconds).
+Test Case '-[CUAEngineTests.EngineUtilitiesTests testUTF16ChunksNeverSplitSurrogates]' started.
+Test Case '-[CUAEngineTests.EngineUtilitiesTests testUTF16ChunksNeverSplitSurrogates]' passed (0.000 seconds).
+Test Suite 'EngineUtilitiesTests' passed at 2026-10-29 12:18:44.274.
+	 Executed 9 tests, with 0 failures (0 unexpected) in 0.002 (0.002) seconds
+Test Suite 'InputPolicyTests' started at 2026-10-29 12:18:44.274.
+Test Case '-[CUAEngineTests.InputPolicyTests testBackgroundPrimitivesOnlyUseTargetPoster]' started.
+Test Case '-[CUAEngineTests.InputPolicyTests testBackgroundPrimitivesOnlyUseTargetPoster]' passed (0.036 seconds).
+Test Case '-[CUAEngineTests.InputPolicyTests testBackgroundRejectsEveryGlobalPrimitiveBeforePosting]' started.
+Test Case '-[CUAEngineTests.InputPolicyTests testBackgroundRejectsEveryGlobalPrimitiveBeforePosting]' passed (0.000 seconds).
+Test Case '-[CUAEngineTests.InputPolicyTests testDefaultDeniesGlobalEvents]' started.
+Test Case '-[CUAEngineTests.InputPolicyTests testDefaultDeniesGlobalEvents]' passed (0.000 seconds).
+Test Case '-[CUAEngineTests.InputPolicyTests testForegroundExplicitlyAllowsGlobalPosterAndRestoresPolicy]' started.
+Test Case '-[CUAEngineTests.InputPolicyTests testForegroundExplicitlyAllowsGlobalPosterAndRestoresPolicy]' passed (0.006 seconds).
+Test Case '-[CUAEngineTests.InputPolicyTests testNestedBackgroundScopeCannotInheritForegroundPermission]' started.
+Test Case '-[CUAEngineTests.InputPolicyTests testNestedBackgroundScopeCannotInheritForegroundPermission]' passed (0.000 seconds).
+Test Suite 'InputPolicyTests' passed at 2026-10-29 12:18:44.318.
+	 Executed 5 tests, with 0 failures (0 unexpected) in 0.043 (0.044) seconds
+Test Suite 'SmokeTests' started at 2026-10-29 12:18:44.318.
+Test Case '-[CUAEngineTests.SmokeTests testEngineConforms]' started.
+Test Case '-[CUAEngineTests.SmokeTests testEngineConforms]' passed (0.000 seconds).
+Test Suite 'SmokeTests' passed at 2026-10-29 12:18:44.318.
+	 Executed 1 test, with 0 failures (0 unexpected) in 0.000 (0.000) seconds
+Test Suite 'TextMatchTests' started at 2026-10-29 12:18:44.318.
+Test Case '-[CUAEngineTests.TextMatchTests testContainsAndExactMatching]' started.
+Test Case '-[CUAEngineTests.TextMatchTests testContainsAndExactMatching]' passed (0.000 seconds).
+Test Case '-[CUAEngineTests.TextMatchTests testOCRBoxConversionUsesTopLeftOrigin]' started.
+Test Case '-[CUAEngineTests.TextMatchTests testOCRBoxConversionUsesTopLeftOrigin]' passed (0.000 seconds).
+Test Case '-[CUAEngineTests.TextMatchTests testPickPrefersAXAndSmallestArea]' started.
+Test Case '-[CUAEngineTests.TextMatchTests testPickPrefersAXAndSmallestArea]' passed (0.000 seconds).
+Test Case '-[CUAEngineTests.TextMatchTests testTreeSearchConvertsRectsToWindowRelative]' started.
+Test Case '-[CUAEngineTests.TextMatchTests testTreeSearchConvertsRectsToWindowRelative]' passed (0.000 seconds).
+Test Suite 'TextMatchTests' passed at 2026-10-29 12:18:44.319.
+	 Executed 4 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+Test Suite 'VisionTextTests' started at 2026-10-29 12:18:44.319.
+Test Case '-[CUAEngineTests.VisionTextTests testRecognizesRenderedText]' started.
+Test Case '-[CUAEngineTests.VisionTextTests testRecognizesRenderedText]' passed (0.155 seconds).
+Test Case '-[CUAEngineTests.VisionTextTests testRejectsUndecodableDataURL]' started.
+Test Case '-[CUAEngineTests.VisionTextTests testRejectsUndecodableDataURL]' passed (0.002 seconds).
+Test Suite 'VisionTextTests' passed at 2026-10-29 12:18:44.476.
+	 Executed 2 tests, with 0 failures (0 unexpected) in 0.157 (0.157) seconds
+Test Suite 'CUAEngineTests.xctest' passed at 2026-10-29 12:18:44.476.
+	 Executed 26 tests, with 0 failures (0 unexpected) in 0.238 (0.240) seconds
+Test Suite 'All tests' passed at 2026-10-29 12:18:44.476.
+	 Executed 26 tests, with 0 failures (0 unexpected) in 0.238 (0.240) seconds
+Test Suite 'All tests' started at 2026-10-29 12:18:44.552.
+Test Suite 'CUACoreTests.xctest' started at 2026-10-29 12:18:44.553.
+Test Suite 'FramingTests' started at 2026-10-29 12:18:44.553.
+Test Case '-[CUACoreTests.FramingTests testOversizedFrameRejected]' started.
+Test Case '-[CUACoreTests.FramingTests testOversizedFrameRejected]' passed (0.000 seconds).
+Test Case '-[CUACoreTests.FramingTests testRoundTripSplitAcrossChunks]' started.
+Test Case '-[CUACoreTests.FramingTests testRoundTripSplitAcrossChunks]' passed (0.000 seconds).
+Test Suite 'FramingTests' passed at 2026-10-29 12:18:44.554.
+	 Executed 2 tests, with 0 failures (0 unexpected) in 0.001 (0.001) seconds
+Test Suite 'CUACoreTests.xctest' passed at 2026-10-29 12:18:44.554.
+	 Executed 2 tests, with 0 failures (0 unexpected) in 0.001 (0.001) seconds
+Test Suite 'All tests' passed at 2026-10-29 12:18:44.554.
+	 Executed 2 tests, with 0 failures (0 unexpected) in 0.001 (0.002) seconds
+Test Suite 'All tests' started at 2026-10-29 12:18:44.627.
+Test Suite 'CUAClientTests.xctest' started at 2026-10-29 12:18:44.628.
+Test Suite 'CUAClientTests' started at 2026-10-29 12:18:44.628.
+Test Case '-[CUAClientTests.CUAClientTests testAutomaticHandshakeAndConcurrentCalls]' started.
+Test Case '-[CUAClientTests.CUAClientTests testAutomaticHandshakeAndConcurrentCalls]' passed (0.002 seconds).
+Test Case '-[CUAClientTests.CUAClientTests testCLIParameterMappingAndValidation]' started.
+Test Case '-[CUAClientTests.CUAClientTests testCLIParameterMappingAndValidation]' passed (0.000 seconds).
+Test Case '-[CUAClientTests.CUAClientTests testConnectionFailureIsActionable]' started.
+Test Case '-[CUAClientTests.CUAClientTests testConnectionFailureIsActionable]' passed (0.000 seconds).
+Test Case '-[CUAClientTests.CUAClientTests testExplicitSessionOverridesHandshakeSession]' started.
+Test Case '-[CUAClientTests.CUAClientTests testExplicitSessionOverridesHandshakeSession]' passed (0.001 seconds).
+Test Case '-[CUAClientTests.CUAClientTests testMCPInitializeAndVersionNegotiation]' started.
+Test Case '-[CUAClientTests.CUAClientTests testMCPInitializeAndVersionNegotiation]' passed (0.001 seconds).
+Test Case '-[CUAClientTests.CUAClientTests testMCPInvalidRequestsAndArguments]' started.
+Test Case '-[CUAClientTests.CUAClientTests testMCPInvalidRequestsAndArguments]' passed (0.000 seconds).
+Test Case '-[CUAClientTests.CUAClientTests testMCPToolCallAndServiceUnavailable]' started.
+Test Case '-[CUAClientTests.CUAClientTests testMCPToolCallAndServiceUnavailable]' passed (0.001 seconds).
+Test Case '-[CUAClientTests.CUAClientTests testMCPToolNamesSchemasAndRequiredFields]' started.
+Test Case '-[CUAClientTests.CUAClientTests testMCPToolNamesSchemasAndRequiredFields]' passed (0.001 seconds).
+Test Case '-[CUAClientTests.CUAClientTests testNotificationDoesNotWaitForResponse]' started.
+Test Case '-[CUAClientTests.CUAClientTests testNotificationDoesNotWaitForResponse]' passed (0.001 seconds).
+Test Case '-[CUAClientTests.CUAClientTests testNullResultIsValidJSONRPC]' started.
+Test Case '-[CUAClientTests.CUAClientTests testNullResultIsValidJSONRPC]' passed (0.001 seconds).
+Test Case '-[CUAClientTests.CUAClientTests testRemotePermissionErrorIncludesRepairLinks]' started.
+Test Case '-[CUAClientTests.CUAClientTests testRemotePermissionErrorIncludesRepairLinks]' passed (0.027 seconds).
+Test Case '-[CUAClientTests.CUAClientTests testSocketOverridePrecedence]' started.
+Test Case '-[CUAClientTests.CUAClientTests testSocketOverridePrecedence]' passed (0.001 seconds).
+Test Case '-[CUAClientTests.CUAClientTests testSocketPingAndRequestIDMatching]' started.
+Test Case '-[CUAClientTests.CUAClientTests testSocketPingAndRequestIDMatching]' passed (0.001 seconds).
+Test Case '-[CUAClientTests.CUAClientTests testTimeout]' started.
+Test Case '-[CUAClientTests.CUAClientTests testTimeout]' passed (0.108 seconds).
+Test Case '-[CUAClientTests.CUAClientTests testVersionMismatchOnlyWarns]' started.
+Test Case '-[CUAClientTests.CUAClientTests testVersionMismatchOnlyWarns]' passed (0.001 seconds).
+Test Suite 'CUAClientTests' passed at 2026-10-29 12:18:44.772.
+	 Executed 15 tests, with 0 failures (0 unexpected) in 0.143 (0.145) seconds
+Test Suite 'CUAClientTests.xctest' passed at 2026-10-29 12:18:44.772.
+	 Executed 15 tests, with 0 failures (0 unexpected) in 0.143 (0.145) seconds
+Test Suite 'All tests' passed at 2026-10-29 12:18:44.772.
+	 Executed 15 tests, with 0 failures (0 unexpected) in 0.143 (0.145) seconds
+􀟈  Test run started.
+􀄵  Testing Library Version: 2084
+􀄵  Target Platform: arm64e-apple-macos14.0
+􁁛  Test run with 0 tests in 0 suites passed after 0.001 seconds.
+􀟈  Test run started.
+􀄵  Testing Library Version: 2084
+􀄵  Target Platform: arm64e-apple-macos14.0
+􁁛  Test run with 0 tests in 0 suites passed after 0.001 seconds.
+􀟈  Test run started.
+􀄵  Testing Library Version: 2084
+􀄵  Target Platform: arm64e-apple-macos14.0
+􁁛  Test run with 0 tests in 0 suites passed after 0.001 seconds.
+􀟈  Test run started.
+􀄵  Testing Library Version: 2084
+􀄵  Target Platform: arm64e-apple-macos14.0
+􁁛  Test run with 0 tests in 0 suites passed after 0.001 seconds.
