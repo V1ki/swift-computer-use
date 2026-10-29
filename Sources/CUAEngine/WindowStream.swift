@@ -31,6 +31,10 @@ public actor WindowStream {
         var lastUsed: Date
     }
 
+    private struct ShareableWindow: @unchecked Sendable {
+        let window: SCWindow
+    }
+
     private var sessions: [UInt32: Session] = [:]
     private var starting: Set<UInt32> = []
     private var cleanupTask: Task<Void, Never>?
@@ -82,10 +86,8 @@ public actor WindowStream {
 
     private func start(windowID: UInt32) async throws {
         guard CGPreflightScreenCaptureAccess() else { throw CUAError.permissionMissing("ScreenRecording") }
-        let content = try await SCShareableContent.excludingDesktopWindows(false, onScreenWindowsOnly: false)
-        guard let window = content.windows.first(where: { $0.windowID == windowID }) else {
-            throw CUAError(code: .elementNotFound, message: "Window \(windowID) is not shareable")
-        }
+        let shared = try await Self.shareableWindow(windowID: windowID)
+        let window = shared.window
         let scale = Self.scale(for: window.frame)
         let configuration = SCStreamConfiguration()
         configuration.width = max(2, Int(window.frame.width * scale))
@@ -113,6 +115,17 @@ public actor WindowStream {
         // Do NOT touch lastUsed here: streaming frames would keep the session
         // alive forever. Idle deadline is refreshed only by actual requests.
         sessions[windowID] = session
+    }
+
+    /// Fetches the SCWindow in a nonisolated helper and returns it through an
+    /// @unchecked Sendable box: SCShareableContent/SCWindow are not Sendable, but
+    /// we only use them to build the filter immediately and never share them.
+    private nonisolated static func shareableWindow(windowID: UInt32) async throws -> ShareableWindow {
+        let content = try await SCShareableContent.excludingDesktopWindows(false, onScreenWindowsOnly: false)
+        guard let window = content.windows.first(where: { $0.windowID == windowID }) else {
+            throw CUAError(code: .elementNotFound, message: "Window \(windowID) is not shareable")
+        }
+        return ShareableWindow(window: window)
     }
 
     private func scheduleCleanup() {

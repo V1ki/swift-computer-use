@@ -16,6 +16,7 @@
 | [03-security-model.md](03-security-model.md) | TCC 权限矩阵、连接级鉴权、会话授权、锁屏授权插件与回锁 |
 | [04-engine-internals.md](04-engine-internals.md) | 截图、AX 树、输入注入、文本渲染格式、公共 API 等价实现 |
 | [05-ax-less-apps.md](05-ax-less-apps.md) | 懒 AX / 部分 AX / 无 AX 应用：AX 可用性矩阵、激活与开关的实测陷阱、控制策略、OCR 与快捷键 |
+| [06-background-and-preview.md](06-background-and-preview.md) | 后台执行与预览：SCStream 触发系统共享面板、CGEventPostToPid 能力矩阵、原版合成焦点/PIP 证据与公开 API 边界 |
 
 ## 原始证据
 

@@ -159,6 +159,7 @@ cua --activate click-text --app com.tencent.xinWeChat --text 通讯录  # 显式
 | [`re/03-security-model.md`](re/03-security-model.md) | TCC 权限矩阵、连接级签名/审计校验、会话与 Always-allow 落盘、锁屏授权插件与 Ctrl-Cmd-Q 回锁 |
 | [`re/04-engine-internals.md`](re/04-engine-internals.md) | 截图（SkyLight/SCScreenshotManager）、AX 树（公开 API + 私有 AccessibilitySPI）、输入注入（CGEventPostToPid）、AX 文本格式 |
 | [`re/05-ax-less-apps.md`](re/05-ax-less-apps.md) | 懒 AX / 无 AX 应用的 AX 可用性矩阵、激活重试、OCR 兜底、快捷键与坐标控制策略 |
+| [`re/06-background-and-preview.md`](re/06-background-and-preview.md) | 后台不抢前台：`CGEventPostToPid` 能力边界、SCStream 系统共享预览、原版合成焦点/自绘 PIP 证据 |
 
 > `re/raw/` 里的原始 dump 有数百 MB，未入库；已入库的只有 `re/raw/*/run.sh` 等小体积复现脚本（见 [re/README.md](re/README.md)）。
 

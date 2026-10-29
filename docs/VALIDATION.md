@@ -207,7 +207,8 @@ cua press-key --app com.tencent.xinWeChat --key Escape   # 清理，输入框无
 ## 9. 后台执行与非侵入式预览（v0.2 改造）
 
 用户实测反馈：CLI 在操作微信时会反复把微信窗口拉到前台、抢输入焦点；原版 Codex 则是后台执行 +
-系统级「正在共享」小窗预览。逐项排查与改造记录如下。
+系统级「正在共享」小窗预览。逐项排查与改造记录如下，完整实验见
+[re/06-background-and-preview.md](https://github.com/V1ki/swift-computer-use/blob/main/re/06-background-and-preview.md)。
 
 ### 9.1 根因
 
