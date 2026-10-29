@@ -107,3 +107,32 @@ $ cua doctor
 - 原服务支持锁屏后操作（授权插件），SwiftCUA 刻意不实现。
 - `disableDiff` 被接受但始终返回全量树（原服务默认返回 diff）。
 - 输入注入会激活目标 App 并使用全局 `CGEvent`；原服务使用 `CGEventPostToPid` 等私有路径实现更隐蔽的后台注入。
+
+## 7. 真实应用实测：微信（`com.tencent.xinWeChat`）
+
+用户在系统设置中授权后，安装版服务 `cua doctor` 六项全部 PASS。用微信做第一次真实桌面操作：
+
+**发现的限制**：微信把窗口藏在无障碍树之外 ——
+`kAXWindowsAttribute` 返回 0 个窗口，`kAXMainWindowAttribute` / `kAXFocusedWindowAttribute` 均为 nil，
+`kAXChildrenAttribute` 只有 2 个 `AXMenuBar`。因此 `cua state` 只能拿到 197 个节点（菜单栏），
+没有聊天窗口的任何可访问元素。
+
+**降级路径**：截图 + 窗口相对坐标。
+
+```bash
+cua screenshot --window 410 --out /tmp/wechat-main.jpg      # 3024×1898 px = 1512×949 pt @2x
+cua click --app com.tencent.xinWeChat --window 410 --x 190 --y 31
+cua type  --app com.tencent.xinWeChat --text "SwiftCUA computer use test"
+cua screenshot --window 410 --out /tmp/wechat-typed.jpg    # 搜索框内文字确认
+cua press-key --app com.tencent.xinWeChat --key Escape      # 关闭搜索，恢复界面
+```
+
+结果：点击落在顶部搜索框，Unicode 输入正确（搜索框显示 `SwiftCUA computer use test`），
+Esc 正常清除；聊天输入框未被触碰，**没有发送任何消息**。
+
+启示：
+
+1. 对 AX 树缺失的应用（微信、部分 Electron/CEF 应用、游戏），computer use 必须走「截图 → 视觉定位 → 坐标点击」。
+   SwiftCUA 的 `capture_screenshot` + `click --x/--y` 已覆盖这条路径。
+2. `click` 的坐标是**窗口内** points，跨 Retina/多显示器由引擎换算成全局坐标，截图返回的 `originX/originY` 可用于反推。
+3. 这类应用上不要依赖 `elementIndex`，会返回 `elementIndexStale`/`elementNotFound`。
