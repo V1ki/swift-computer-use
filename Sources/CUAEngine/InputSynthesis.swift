@@ -5,6 +5,14 @@ import CUACore
 
 /// 仅从 SkyEngine 的非 MainActor 隔离上下文调用；一次手势保持串行，避免按键交错。
 enum InputSynthesis {
+    @TaskLocal static var context = InputContext()
+
+    static func requireGlobalPermission() throws {
+        guard context.allowActivation else {
+            context.trace?.record("blocked-global-post")
+            throw CUAError(code: .inputRejected, message: "Global CGEvent injection is forbidden in background mode; explicitly enable --activate")
+        }
+    }
     static func pause(_ milliseconds: Int) { Thread.sleep(forTimeInterval: Double(max(0, min(milliseconds, 10_000))) / 1000) }
     static func duration(_ milliseconds: Int?) throws -> Int {
         let value = milliseconds ?? 20
@@ -13,7 +21,9 @@ enum InputSynthesis {
     }
     static func post(_ event: CGEvent?) throws {
         guard let event else { throw CUAError(code: .inputRejected, message: "Cannot allocate input event") }
-        event.post(tap: .cghidEventTap)
+        try requireGlobalPermission()
+        context.trace?.posted(global: true)
+        context.poster.postGlobal(event)
     }
     static func key(_ chord: KeyChord, duration: Int = 20) throws {
         guard let down = CGEvent(keyboardEventSource: nil, virtualKey: chord.keyCode, keyDown: true),
@@ -26,9 +36,9 @@ enum InputSynthesis {
             down.keyboardSetUnicodeString(stringLength: units.count, unicodeString: units)
             up.keyboardSetUnicodeString(stringLength: units.count, unicodeString: units)
         }
-        down.post(tap: .cghidEventTap)
+        try post(down)
         pause(duration)
-        up.post(tap: .cghidEventTap)
+        try post(up)
     }
     static func text(_ text: String) throws {
         for units in TextInput.chunks(text) {
@@ -38,7 +48,7 @@ enum InputSynthesis {
             }
             down.keyboardSetUnicodeString(stringLength: units.count, unicodeString: units)
             up.keyboardSetUnicodeString(stringLength: units.count, unicodeString: units)
-            down.post(tap: .cghidEventTap); up.post(tap: .cghidEventTap)
+            try post(down); try post(up)
             pause(5)
         }
     }
@@ -61,6 +71,7 @@ enum InputSynthesis {
         }
     }
     static func paste(_ text: String, format: CUAPasteFormat) throws {
+        try requireGlobalPermission()
         let board = NSPasteboard.general
         // 保留每个 item 的所有具体数据类型；不持有已被 clearContents 失效的 lazy provider。
         let saved = (board.pasteboardItems ?? []).map { item -> [NSPasteboard.PasteboardType: Data] in
@@ -92,13 +103,13 @@ enum InputSynthesis {
 
 // MARK: - Background (pid-targeted) variants
 //
-// macOS delivers these straight to the target application's event queue without
-// raising it or moving the physical cursor. This is the public-API equivalent of
-// what the original service does with its focus enforcer + virtual cursor.
+// These bypass the global event stream. The receiving app can still react by
+// activating itself or warping the cursor; public APIs cannot prevent that.
 extension InputSynthesis {
     static func post(_ event: CGEvent?, to pid: pid_t) throws {
         guard let event else { throw CUAError(code: .inputRejected, message: "Cannot allocate input event") }
-        event.postToPid(pid)
+        context.trace?.posted(global: false)
+        context.poster.post(event, to: pid)
     }
 
     static func click(at point: CGPoint, button: CUAMouseButton, count: Int, flags: CGEventFlags,
@@ -134,9 +145,9 @@ extension InputSynthesis {
             down.keyboardSetUnicodeString(stringLength: units.count, unicodeString: units)
             up.keyboardSetUnicodeString(stringLength: units.count, unicodeString: units)
         }
-        down.postToPid(pid)
+        try post(down, to: pid)
         pause(duration)
-        up.postToPid(pid)
+        try post(up, to: pid)
     }
 
     static func text(_ text: String, pid: pid_t) throws {
@@ -147,7 +158,7 @@ extension InputSynthesis {
             }
             down.keyboardSetUnicodeString(stringLength: units.count, unicodeString: units)
             up.keyboardSetUnicodeString(stringLength: units.count, unicodeString: units)
-            down.postToPid(pid); up.postToPid(pid)
+            try post(down, to: pid); try post(up, to: pid)
             pause(5)
         }
     }

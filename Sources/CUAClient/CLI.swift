@@ -124,9 +124,12 @@ enum CUACommandLine {
                 timeout = parsed
             } else { timeout = 30 }
             let client = SocketClient(socketPath: args.options["socket"], timeout: timeout)
-            if args.flags.contains("activate") {
-                // 显式前台模式：仅本次 CLI 调用前下发，默认仍是后台投递。
-                _ = try? await client.send(method: "setOptions", params: .object(["activate": .bool(true)]))
+            // Fail closed for service actions: a failed policy reset must never
+            // reuse a preceding foreground mode. Local session/doctor/ping commands
+            // remain usable when the service is unavailable or older.
+            if commandTools[command] != nil || command == "call" || command == "mcp" {
+                _ = try await client.send(method: "setOptions",
+                                          params: .object(["activate": .bool(args.flags.contains("activate"))]))
             }
             switch command {
             case "mcp":

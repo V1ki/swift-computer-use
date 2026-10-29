@@ -291,3 +291,55 @@ $ cua screenshot --window 152   # 触发窗口流
 - 预览面板只显示**受控窗口**，不显示鼠标/点击轨迹；
 - 面板不参与输入（`canBecomeKey=false`），点按按钮不会把焦点从用户当前 App 拿走；
 - 高 DPI 下缩略图固定 ~480px 宽，仅用于预览，不影响 OCR/截图（全分辨率另走流帧）。
+
+## 11. 「抢鼠标」取证与输入策略硬化（v0.4）
+
+用户反馈新版微信下后台操作仍像在抢鼠标。做了三层取证与硬化。
+
+### 11.1 静态审计
+
+后台分支（`allowActivation=false`）不应有任何全局输入：
+
+- 坐标点击 → 直接拒绝（`inputRejected`，提示 `--activate`）；
+- 键盘/Unicode/滚动/拖拽 → `CGEventPostToPid`；
+- AX 写值/选区/AXPress → 不触碰光标；
+- PiP 面板为 `nonactivatingPanel`，不能成为 key/main，不使用 activate；
+- SCStream `showsCursor=false`。
+
+### 11.2 独立事件 tap 取证
+
+`scripts/cursor-probe.swift` 用 CGEventTap 监听 `mouseMoved/leftMouseDown/leftMouseDragged`，
+记录 `eventSourceUnixProcessID`：
+
+- **空动作 10 秒 baseline**：捕获大量 `mouseMoved/leftMouseDown`，`sourcePID=0 / sourceState=1`
+  （HID/hardware），轨迹连续变化——说明机器上存在真实的用户/硬件鼠标活动；
+- **受控轮次**（手离开鼠标）：`state` / AX 写值 / pid Return 三步光标位移 **Δ=0**，前台 Chrome 不变；
+  SCStream 5 帧期间出现的位移，tap 恰好捕获到 5 个 `sourcePID=0` 事件，没有任何来自微信、
+  SwiftCUA 服务或探针进程的事件；
+- **有外部输入的重跑**：TextEdit 只读 Δ121px、微信只读 Δ901px，但 tap 同样显示 PID0 事件源，
+  `AX 写 Δ6.89px / Return Δ0`，Chrome 始终不变。
+
+结论：**没有证据表明 SwiftCUA 在新版微信下 warp 光标**；历史大跳与该轮外部 HID 活动一致。
+但由于用户确实在同时使用鼠标，无法把每次历史跳变百分百归因，报告保留这个不确定性。
+
+### 11.3 硬化（代码）
+
+- `InputSynthesis` 增加 `TaskLocal InputContext` + `EventPoster` 注入点：
+  后台模式下任何全局 `CGEvent.post(tap:.cghidEventTap)` 直接抛 `inputRejected`（fail closed）；
+- `launchApp` 的 `NSWorkspace.OpenConfiguration.activates` 跟随策略（后台 = false）；
+- `performSecondaryAction` 在后台模式拒绝 `AXRaise`；
+- CLI 对 action 类命令**必须**成功下发 `setOptions{activate: bool}`，失败即报错，避免上一次 `--activate` 残留；
+- 诊断：`SWIFTCUA_TRACE_CURSOR=1` 时，每次 action 记录
+  `phase/before/after/光标坐标/frontmost PID/globalPosts/pidPosts` 到 unified log（`subsystem dev.v1ki.swiftcua, category cursor`）；
+- 新增 `scripts/verify-background.sh`：默认打开一次性 TextEdit 文档，`--wechat-self-chat` 需显式 opt-in
+  且只认 `knight` 输入框、检测到非空草稿会拒绝运行；逐步输出光标位移、前台 PID、事件源；
+- 新增 5 个 `InputPolicyTests`：默认拒绝全局事件、后台原语只走目标 poster、前台需显式允许、
+  嵌套后台 scope 不能继承前台权限、无全局 post。
+
+### 11.4 新版微信 4.1.15 适配结论
+
+- AX 树仍可用（~112 节点，`list "会话"/"消息"`、`textArea`、`button "发送"` 结构不变）；
+- 主窗口几何与窗口 id 变化，导航点击**仍需前台**（后台 pid 鼠标事件对 AppKit 不生效）；
+- 后台 AX 写输入框可用；但**后台 Return 并没有把消息发出去**（实测文字仍留在输入框，
+  随后已清空草稿），点「发送」按钮属鼠标点击，仍需 `--activate`；
+- 因此能力矩阵维持：读 + AX 写值可后台；搜索/切会话/点发送必须前台。

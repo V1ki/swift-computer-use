@@ -31,7 +31,7 @@ SERVICE="$SCRATCH/debug/cua-service"
 CLI="$SCRATCH/debug/cua"
 
 echo "==> start service"
-"$SERVICE" --no-peer-check > "$TMP/service.log" 2>&1 &
+"$SERVICE" --no-peer-check --headless > "$TMP/service.log" 2>&1 &
 SVC_PID=$!
 for _ in $(seq 1 50); do [[ -S "$SWIFTCUA_HOME/IPC/computeruse.sock" ]] && break; sleep 0.1; done
 

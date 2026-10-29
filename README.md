@@ -183,6 +183,19 @@ cua --activate click-text --app com.tencent.xinWeChat --text 通讯录  # 显式
 - [`docs/COMPATIBILITY.md`](docs/COMPATIBILITY.md) —— `@oai/sky` 方法映射与已知差异
 - [`docs/VALIDATION.md`](docs/VALIDATION.md) —— 本机实测记录（测试、AX 树、截图、安装状态）
 
+### 光标/焦点保护
+
+后台模式有运行时守卫：任何全局 `CGEvent` 注入都会直接报错（`--activate` 才允许），
+`launchApp` 不会抢焦点，AX 写值/键盘走 `CGEventPostToPid`。
+
+```bash
+# 诊断：把每一步的光标坐标/前台 PID/事件计数写进 unified log
+SWIFTCUA_TRACE_CURSOR=1 cua state --app com.apple.TextEdit
+
+# 自带验证脚本（默认一次性 TextEdit 文档；--wechat-self-chat 仅用于 knight 自聊）
+./scripts/verify-background.sh
+```
+
 ## 7. 安全模型
 
 - socket 权限 `0600`，只允许同用户进程；可选的对端签名校验（`--require-peer` + `config.json` 白名单）。
