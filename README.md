@@ -41,6 +41,8 @@ make install      # 组装并签名 SwiftCUA.app → ~/Applications + LaunchAgen
 2. 打开「系统设置 → 隐私与安全性 → 辅助功能」，添加/勾选 `SwiftCUA.app`
 3. `launchctl kickstart -k gui/$(id -u)/dev.v1ki.swiftcua.service`
 
+助手：`./scripts/open-permissions.sh` 会直接打开这两个设置面板（授权仍需手点）。
+
 验证：
 
 ```bash
