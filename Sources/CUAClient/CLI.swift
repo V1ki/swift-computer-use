@@ -6,8 +6,8 @@ struct CLIArguments {
     var positionals: [String] = []
     var options: [String: String] = [:]
     var flags: Set<String> = []
-    static let booleanOptions: Set<String> = ["json", "windows", "no-screenshot", "no-text", "exact", "no-ocr", "ocr-only", "activate", "help", "version"]
-    static let valueOptions: Set<String> = ["socket", "timeout", "app", "query", "window", "screenshot-out", "out", "display", "element", "x", "y", "count", "button", "key", "duration-ms", "text", "direction", "pages", "value", "from-x", "from-y", "to-x", "to-y", "format", "prefix", "suffix", "selection", "action", "session", "limit"]
+    static let booleanOptions: Set<String> = ["json", "windows", "no-screenshot", "no-text", "exact", "no-ocr", "ocr-only", "activate", "help", "version", "running", "installed"]
+    static let valueOptions: Set<String> = ["socket", "timeout", "app", "query", "window", "screenshot-out", "out", "display", "element", "x", "y", "count", "button", "key", "duration-ms", "text", "direction", "pages", "value", "from-x", "from-y", "to-x", "to-y", "format", "prefix", "suffix", "selection", "action", "session", "limit", "depth", "attribute", "value-json", "coordinate-space", "strategy"]
 
     init(_ arguments: [String]) throws {
         var index = 0
@@ -56,13 +56,17 @@ enum CUACommandLine {
 
       ping                         服务版本 / API 版本 / 权限
       permissions                  权限与 System Settings 修复指引
-      apps [--windows]             应用列表
-      windows                      窗口列表
+      apps [--windows] [--running | --installed]  应用列表
+      windows [--app ID]            窗口 id / 标题 / 几何 / 前台
+      info --app ID                无截图的结构化 state（含进程/前台/光标/权限）
+      ax get|set|action|focus|attributes|actions --app ID --element N
+         [--attribute AXTitle] [--action AXPress] [--value S | --value-json JSON]
       state --app ID [--no-screenshot] [--no-text] [--query S]
-            [--window ID] [--screenshot-out PATH]
+            [--window ID] [--limit N] [--depth N] [--screenshot-out PATH]
       screenshot [--app ID | --window ID | --display ID] --out PATH
       click --app ID (--element N | --x F --y F)
             [--count N] [--button left|right|middle] [--key CHORD]
+            [--coordinate-space window|global] [--strategy auto|ax|coordinate]
       press-key --app ID --key CHORD [--duration-ms N]
       type --app ID --text S [--element N]
       scroll --app ID [--direction up|down|left|right] [--pages N]
@@ -90,7 +94,7 @@ enum CUACommandLine {
 
     private static let commandTools: [String: String] = [
         "permissions": "get_permissions", "apps": "list_apps", "windows": "list_windows",
-        "state": "get_app_state", "screenshot": "capture_screenshot", "click": "click",
+        "state": "get_app_state", "info": "get_app_state", "screenshot": "capture_screenshot", "click": "click",
         "press-key": "press_key", "type": "type_text", "scroll": "scroll", "set-value": "set_value",
         "drag": "drag", "paste": "paste", "select-text": "select_text", "action": "perform_secondary_action",
         "find-text": "find_text", "click-text": "click_text"
@@ -101,7 +105,8 @@ enum CUACommandLine {
         "key": "key", "duration-ms": "durationMilliseconds", "text": "text", "direction": "direction",
         "pages": "pages", "value": "value", "from-x": "fromX", "from-y": "fromY", "to-x": "toX",
         "to-y": "toY", "format": "format", "prefix": "prefix", "suffix": "suffix", "selection": "selectionType",
-        "action": "action", "query": "query", "limit": "limit"
+        "action": "action", "query": "query", "limit": "limit", "depth": "depth",
+        "coordinate-space": "coordinateSpace", "strategy": "strategy"
     ]
 
     static func run(_ arguments: [String]) async -> Int32 {
@@ -127,11 +132,15 @@ enum CUACommandLine {
             // Fail closed for service actions: a failed policy reset must never
             // reuse a preceding foreground mode. Local session/doctor/ping commands
             // remain usable when the service is unavailable or older.
-            if commandTools[command] != nil || command == "call" || command == "mcp" {
+            if commandTools[command] != nil || command == "call" || command == "mcp" || command == "ax" {
                 _ = try await client.send(method: "setOptions",
                                           params: .object(["activate": .bool(args.flags.contains("activate"))]))
             }
             switch command {
+            case "ax":
+                let request = try axParameters(args)
+                let result = try await client.send(method: request.0, params: request.1)
+                print(try jsonText(result, pretty: !args.json))
             case "mcp":
                 try args.allow([])
                 await MCPServer(client: client).run()
@@ -162,7 +171,13 @@ enum CUACommandLine {
                     throw CLIArguments.invalid("Unknown command: \(command)")
                 }
                 let params = try parameters(args, command: command, tool: tool)
-                let result = try await client.send(method: tool.method, params: params)
+                var result = try await client.send(method: tool.method, params: params)
+                if command == "windows", let app = args.options["app"] {
+                    result = .object(["windows": .array((result["windows"]?.arrayValue ?? []).filter { $0["app"]?.stringValue == app })])
+                }
+                if command == "apps", args.flags.contains("running") || args.flags.contains("installed") {
+                    result = .object(["apps": .array((result["apps"]?.arrayValue ?? []).filter { args.flags.contains("running") ? $0["isRunning"]?.boolValue == true : $0["isInstalled"]?.boolValue == true })])
+                }
                 var paths: [String] = []
                 if command == "screenshot" {
                     paths = try saveScreenshots(result["screenshots"]?.arrayValue ?? [], to: args.require("out"))
@@ -183,10 +198,31 @@ enum CUACommandLine {
         }
     }
 
+    static func axParameters(_ args: CLIArguments) throws -> (String, JSONValue) {
+        try args.allow(["app", "session", "window", "element", "attribute", "action", "value", "value-json"], positionals: 2...2)
+        let names = ["get": "axGet", "set": "axSet", "action": "axAction", "focus": "axFocus", "attributes": "axAttributes", "actions": "axActions"]
+        guard let method = names[args.positionals[1]], let index = Int(try args.require("element")), index >= 0 else { throw CLIArguments.invalid("Expected AX subcommand and nonnegative --element") }
+        var params: [String: JSONValue] = ["app": .string(try args.require("app")), "elementIndex": .int(index)]
+        if let session = args.options["session"] { params["sessionId"] = .string(session) }
+        if let raw = args.options["window"] {
+            guard let id = UInt32(raw) else { throw CLIArguments.invalid("Invalid --window") }
+            params["windowId"] = .int(Int(id))
+        }
+        if method == "axGet" || method == "axSet" { params["attribute"] = .string(try args.require("attribute")) }
+        if method == "axAction" { params["action"] = .string(try args.require("action")) }
+        if method == "axSet" {
+            guard (args.options["value"] == nil) != (args.options["value-json"] == nil) else { throw CLIArguments.invalid("ax set requires exactly one of --value or --value-json") }
+            if let raw = args.options["value-json"] { params["value"] = try CUACodec.decode(JSONValue.self, from: Data(raw.utf8)) }
+            else { params["value"] = .string(try args.require("value")) }
+        }
+        return (method, .object(params))
+    }
+
     static func parameters(_ args: CLIArguments, command: String, tool: MCPTool) throws -> JSONValue {
         var allowed = Set(optionFields.filter { tool.properties[$0.value] != nil }.map(\.key))
-        if command == "apps" { allowed.insert("windows") }
-        if command == "state" { allowed.formUnion(["no-screenshot", "no-text", "screenshot-out"]) }
+        if command == "apps" { allowed.formUnion(["windows", "running", "installed"]) }
+        if command == "windows" { allowed.insert("app") }
+        if command == "state" || command == "info" { allowed.formUnion(["no-screenshot", "no-text", "screenshot-out"]) }
         if command == "screenshot" { allowed.insert("out"); _ = try args.require("out") }
         if command == "find-text" || command == "click-text" { allowed.formUnion(["exact", "no-ocr", "ocr-only"]) }
         try args.allow(allowed)
@@ -203,9 +239,11 @@ enum CUACommandLine {
             default: params[field] = .string(raw)
             }
         }
+        if command == "apps", args.flags.contains("running") && args.flags.contains("installed") { throw CLIArguments.invalid("Choose --running or --installed, not both") }
+        if command == "info", args.options["screenshot-out"] != nil { throw CLIArguments.invalid("Use state for screenshot output") }
         if command == "apps" { params["includeWindows"] = .bool(args.flags.contains("windows")) }
-        if command == "state" {
-            params["includeScreenshot"] = .bool(!args.flags.contains("no-screenshot"))
+        if command == "state" || command == "info" {
+            params["includeScreenshot"] = .bool(command != "info" && !args.flags.contains("no-screenshot"))
             params["includeText"] = .bool(!args.flags.contains("no-text"))
             if args.flags.contains("no-screenshot") && args.options["screenshot-out"] != nil {
                 throw CLIArguments.invalid("--no-screenshot conflicts with --screenshot-out")
@@ -270,15 +308,16 @@ enum CUACommandLine {
                  String($0["windows"]?.arrayValue?.count ?? 0)]
             })
         case "windows":
-            table(headers: ["ID", "APP", "TITLE", "FOCUSED"], rows: (result["windows"]?.arrayValue ?? []).map {
-                [String($0["id"]?.intValue ?? 0), $0["app"]?.stringValue ?? "", $0["title"]?.stringValue ?? "—", $0["isFocused"]?.boolValue == true ? "yes" : "no"]
+            table(headers: ["ID", "APP", "TITLE", "BOUNDS", "FOCUSED"], rows: (result["windows"]?.arrayValue ?? []).map {
+                [String($0["id"]?.intValue ?? 0), $0["app"]?.stringValue ?? "", $0["title"]?.stringValue ?? "—", (try? jsonText($0["bounds"] ?? .null)) ?? "?", $0["isFocused"]?.boolValue == true ? "yes" : "no"]
             })
+        case "info": print((try? jsonText(result, pretty: true)) ?? "{}")
         case "state":
             let state = result["state"] ?? result
             print(state["text"]?.stringValue ?? state["accessibility"]?["tree"]?.stringValue ?? "No text returned")
             if state["screenshot"] != nil && state["screenshot"] != .null { print("Screenshot available (use --screenshot-out PATH to save).") }
         case "screenshot": break
-        default: print("OK")
+        default: print((try? jsonText(result, pretty: true)) ?? "{}")
         }
     }
     private static func table(headers: [String], rows: [[String]]) {

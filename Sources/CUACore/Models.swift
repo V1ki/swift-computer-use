@@ -77,6 +77,9 @@ public struct CUAAppInfo: Codable, Sendable, Hashable {
     public var id: String
     public var displayName: String?
     public var isRunning: Bool?
+    public var isInstalled: Bool?
+    public var pid: Int32?
+    public var activationPolicy: String?
     /// ISO 8601 timestamp, when the platform exposes a recency signal.
     public var lastUsedDate: String?
     public var useCount: Int?
@@ -179,6 +182,7 @@ public struct CUAAccessibilityNode: Codable, Sendable, Hashable {
     /// and `scroll` for this app until the next `getAppState` call.
     public var index: Int
     public var role: String
+    public var subrole: String?
     public var title: String?
     public var value: String?
     public var description: String?
@@ -191,6 +195,7 @@ public struct CUAAccessibilityNode: Codable, Sendable, Hashable {
     public init(
         index: Int,
         role: String,
+        subrole: String? = nil,
         title: String? = nil,
         value: String? = nil,
         description: String? = nil,
@@ -202,6 +207,7 @@ public struct CUAAccessibilityNode: Codable, Sendable, Hashable {
     ) {
         self.index = index
         self.role = role
+        self.subrole = subrole
         self.title = title
         self.value = value
         self.description = description
@@ -222,6 +228,9 @@ public struct CUAAccessibilityState: Codable, Sendable, Hashable {
     public var selectedText: String?
     public var selectedElements: [String]?
     public var documentText: String?
+    public var nodes: [CUAAccessibilityNode]?
+    public var truncated: Bool?
+    public var snapshotId: String?
 
     public init(
         tree: String,
@@ -245,6 +254,7 @@ public struct CUAAppState: Codable, Sendable, Hashable {
     /// Tree text, prefixed with app-specific guidance when the engine learns one.
     public var text: String
     public var accessibility: CUAAccessibilityState?
+    public var info: JSONValue?
     public var windows: [CUAWindowInfo]
 
     public init(

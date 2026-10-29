@@ -33,12 +33,29 @@ struct IndexStamp {
 }
 
 public enum AXFormat {
+    /// Presentation-only bounds: never renumber or replace the captured index table.
+    public static func bounded(_ nodes: [CUAAccessibilityNode], limit: Int, depth: Int) -> (nodes: [CUAAccessibilityNode], truncated: Bool) {
+        var remaining = limit
+        var truncated = false
+        func visit(_ nodes: [CUAAccessibilityNode], level: Int) -> [CUAAccessibilityNode] {
+            nodes.compactMap { node in
+                guard remaining > 0, level <= depth else { truncated = true; return nil }
+                remaining -= 1
+                var copy = node
+                copy.children = visit(node.children, level: level + 1)
+                return copy
+            }
+        }
+        let result = visit(nodes, level: 0)
+        return (result, truncated)
+    }
+
     public static func filter(_ nodes: [CUAAccessibilityNode], query: String?) -> [CUAAccessibilityNode] {
         guard let query, !query.isEmpty else { return nodes }
         return nodes.compactMap { node in
             var copy = node
             copy.children = filter(node.children, query: query)
-            let fields = [node.role, node.title, node.value, node.description, node.identifier].compactMap { $0 }
+            let fields = [node.role, node.subrole, node.title, node.value, node.description, node.identifier].compactMap { $0 }
             return !copy.children.isEmpty || fields.contains(where: { $0.localizedCaseInsensitiveContains(query) }) ? copy : nil
         }
     }
@@ -52,6 +69,8 @@ public enum AXFormat {
             guard !node.states.contains("hidden"), !node.states.contains("invalid"), !node.role.isEmpty else { return }
             let role = node.role.hasPrefix("AX") ? String(node.role.dropFirst(2)) : node.role
             var line = String(repeating: "  ", count: depth) + "[\(node.index)] \(role.prefix(1).lowercased() + role.dropFirst())"
+            if let subrole = node.subrole { line += " subrole=" + quote(subrole) }
+            if let identifier = node.identifier { line += " identifier=" + quote(identifier) }
             if let title = node.title, !title.isEmpty { line += " " + quote(title) }
             if let value = node.value, !value.isEmpty { line += " value=" + quote(value) }
             if let description = node.description, !description.isEmpty, description != node.title { line += " description=" + quote(description) }

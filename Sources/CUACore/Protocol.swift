@@ -93,6 +93,7 @@ public enum CUAMethod: String, Codable, Sendable, CaseIterable {
     case listApps
     case listWindows
     case getAppState
+    case axGet, axSet, axAction, axFocus, axAttributes, axActions
     case click
     case pressKey
     case typeText
@@ -170,6 +171,8 @@ public struct GetAppStateParams: Codable, Sendable, Hashable {
     public var includeText: Bool?
     /// Return the full tree instead of a diff from the previous capture.
     public var disableDiff: Bool?
+    public var limit: Int?
+    public var depth: Int?
     /// Case-insensitive accessibility tree filter that keeps matching ancestors.
     public var query: String?
     /// Window id to target when the app owns several windows.
@@ -203,6 +206,8 @@ public struct ClickParams: Codable, Sendable, Hashable {
     public var app: String
     public var sessionId: String?
     public var elementIndex: Int?
+    public var coordinateSpace: String?
+    public var strategy: String?
     /// Window-relative coordinates inside the target app window.
     public var x: Double?
     public var y: Double?

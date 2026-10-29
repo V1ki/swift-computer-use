@@ -79,7 +79,7 @@ final class SocketClient: @unchecked Sendable {
                     }
                     var outgoing = method == "ping" ? (params ?? self.pingParams) : params
                     // 服务握手分配会话；仅为已知且支持会话的方法补齐，不改变 call 的未知方法。
-                    let sessionMethods: Set<String> = ["listApps", "getAppState", "click", "pressKey", "typeText", "scroll", "setValue", "drag", "paste", "selectText", "performSecondaryAction", "captureScreenshot", "findText", "clickText"]
+                    let sessionMethods: Set<String> = ["listApps", "getAppState", "click", "pressKey", "typeText", "scroll", "setValue", "drag", "paste", "selectText", "performSecondaryAction", "captureScreenshot", "findText", "clickText", "axGet", "axSet", "axAction", "axFocus", "axAttributes", "axActions"]
                     if sessionMethods.contains(method), let sessionId = self.sessionId,
                        outgoing == nil || outgoing?.objectValue != nil {
                         var object = outgoing?.objectValue ?? [:]

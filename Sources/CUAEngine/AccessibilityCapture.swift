@@ -125,6 +125,7 @@ enum AXAccess {
                 if geometryMatch != nil { break }
             }
             if let geometryMatch { return geometryMatch }
+            throw CUAError(code: .elementNotFound, message: "Requested window is not exposed in the app accessibility tree")
         }
         // 应用的主窗口/焦点窗口是公开属性，比外部传入的窗口几何更可靠。
         if let main = element(value(app, kAXMainWindowAttribute)) { return main }
@@ -148,7 +149,7 @@ final class AccessibilityCapture {
     var truncated = false
     let attributes: [String] = [kAXRoleAttribute, kAXTitleAttribute, kAXValueAttribute, kAXDescriptionAttribute,
                                 kAXIdentifierAttribute, kAXEnabledAttribute, kAXFocusedAttribute, kAXSelectedAttribute,
-                                kAXExpandedAttribute, kAXPositionAttribute, kAXSizeAttribute, kAXChildrenAttribute, "AXHidden"]
+                                kAXExpandedAttribute, kAXPositionAttribute, kAXSizeAttribute, kAXChildrenAttribute, "AXHidden", kAXSubroleAttribute]
 
     func capture(pid: Int32, window: CUAWindowInfo?) throws -> AXSnapshot {
         try AXAccess.checkPermission()
@@ -188,7 +189,7 @@ final class AccessibilityCapture {
         if value == nil, let number = values[2] as? NSNumber { value = number.stringValue }
         // AXActions 不是标准属性，需单独使用公开 CopyActionNames。
         let actions = ProcessInfo.processInfo.systemUptime < deadline ? AXAccess.actions(element) : []
-        var node = CUAAccessibilityNode(index: index, role: role, title: values[1] as? String,
+        var node = CUAAccessibilityNode(index: index, role: role, subrole: values[13] as? String, title: values[1] as? String,
                                         value: value.map { String($0.prefix(16_384)) }, description: values[3] as? String,
                                         identifier: values[4] as? String, states: states, actions: actions,
                                         frame: AXAccess.frame(position: values[9] as CFTypeRef, size: values[10] as CFTypeRef))

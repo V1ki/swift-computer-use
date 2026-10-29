@@ -11,10 +11,10 @@ public actor SkyEngine: CUAEngine {
     private var generation: UInt64 = 0
     /// Explicit engine policy. Each action snapshots it into a task-local context.
     private var activationOption = false
-    private var allowActivation: Bool { InputSynthesis.context.allowActivation }
+    var allowActivation: Bool { InputSynthesis.context.allowActivation }
     // Nested actions (clickText -> findText) retain the original policy even if
     // another client calls setOptions while this actor is suspended in capture.
-    private var actionActivation: Bool {
+    var actionActivation: Bool {
         InputSynthesis.context.trace == nil ? activationOption : allowActivation
     }
 
@@ -60,12 +60,17 @@ public actor SkyEngine: CUAEngine {
                 installedApps = AppCatalog.installed(); installedAt = Date()
             }
             var result = Dictionary(uniqueKeysWithValues: installedApps.map { ($0.id, $0) })
+            for id in result.keys { result[id]?.isInstalled = true }
             let windows = includeWindows ? AppCatalog.windows() : []
             for running in NSWorkspace.shared.runningApplications where !running.isTerminated {
                 let id = AppCatalog.identifier(running)
+                let isInstalled = result[id]?.isInstalled ?? false
                 // macOS 不提供公开的精确使用次数；不伪造 useCount 或将启动时间冒充 lastUsedDate。
                 result[id] = CUAAppInfo(id: id, displayName: running.localizedName ?? result[id]?.displayName,
                                         isRunning: true, windows: windows.filter { $0.app == id })
+                result[id]?.isInstalled = isInstalled
+                result[id]?.pid = running.processIdentifier
+                result[id]?.activationPolicy = running.activationPolicy == .regular ? "regular" : running.activationPolicy == .accessory ? "accessory" : "prohibited"
             }
             return result.values.sorted { ($0.displayName ?? $0.id).localizedCaseInsensitiveCompare($1.displayName ?? $1.id) == .orderedAscending }
         }
@@ -84,7 +89,7 @@ public actor SkyEngine: CUAEngine {
     /// Captures the AX tree and works around applications that only materialize
     /// their accessibility tree once they have been frontmost at least once
     /// (WeChat is the canonical example: before activation the app element only
-    /// exposes menu bars). Also flips Chromium/Electron enablement flags.
+    /// exposes menu bars). Never changes accessibility enablement flags.
     private func accessibilitySnapshot(app: NSRunningApplication, window: CUAWindowInfo?) throws -> AXSnapshot {
         try AXAccess.checkPermission()
         let pid = app.processIdentifier
@@ -104,22 +109,6 @@ public actor SkyEngine: CUAEngine {
             snapshot = try AccessibilityCapture().capture(pid: pid, window: window)
         }
 
-        // Chromium/Electron expose a sparse tree until "enhanced" accessibility
-        // is switched on; the tree then grows asynchronously (upstream debounce
-        // is ~2s), so poll content rather than trusting the setter or window count.
-        if snapshot.nodes.count < 30, AXAccess.enableAccessibilityIfNeeded(pid: pid) {
-            var best = snapshot
-            for _ in 0..<10 {
-                usleep(300_000)
-                guard let candidate = try? AccessibilityCapture().capture(pid: pid, window: window) else { continue }
-                if candidate.nodes.count > best.nodes.count { best = candidate }
-                if best.nodes.count >= 60 { break }
-            }
-            if best.nodes.count > snapshot.nodes.count {
-                CUALogger(CUALog.engine).debug("AX tree for \(label) grew \(snapshot.nodes.count) -> \(best.nodes.count) after enablement")
-            }
-            snapshot = best
-        }
         return snapshot
     }
 
@@ -150,7 +139,7 @@ public actor SkyEngine: CUAEngine {
             let running = try AppCatalog.running(params.app)
             let app = AppCatalog.identifier(running)
             let allWindows = AppCatalog.windows().filter { $0.app == app }
-            let requested = params.windowId.flatMap { id in allWindows.first { $0.id == id } }
+            let requested = try params.windowId.map { try AppCatalog.targetWindow(app: app, windowID: $0, windows: allWindows) }
             let snapshot = try accessibilitySnapshot(app: running, window: requested)
             let target = requested
                 ?? snapshot.rootFrame.flatMap { AppCatalog.window(matching: $0, app: app, windows: allWindows) }
@@ -209,16 +198,8 @@ public actor SkyEngine: CUAEngine {
                                    message: "Background click needs an AX element; OCR hit has no semantic action. Rerun with --activate",
                                    data: .object(["hint": .string("cua --activate ...")]))
                 }
-                let before = snapshots[app].map { fingerprint($0.nodes) }
                 let element = try resolve(running, index: index, windowID: params.windowId)
-                _ = AXUIElementPerformAction(element, kAXPressAction as CFString)
-                usleep(300_000)
-                if let before, let fresh = try? AccessibilityCapture().capture(pid: running.processIdentifier, window: nil),
-                   fingerprint(fresh.nodes) == before {
-                    throw CUAError(code: .inputRejected,
-                                   message: "AXPress had no visible effect in background; rerun with --activate",
-                                   data: .object(["hint": .string("cua --activate ...")]))
-                }
+                try AXAccess.check(AXUIElementPerformAction(element, kAXPressAction as CFString), context: "AXPress")
                 return match
             }
             // clickText always acts on the located rectangle: AXPress is not
@@ -229,7 +210,7 @@ public actor SkyEngine: CUAEngine {
             // Coordinates belong to the window the match came from; never silently
             // apply OCR/AX rects to a different (e.g. detached) window.
             let targetID = params.windowId ?? match.windowId
-            let target: CUAWindowInfo? = targetID.flatMap { id in canvas.first { $0.id == id } }
+            let target: CUAWindowInfo? = try targetID.map { try AppCatalog.targetWindow(app: app, windowID: $0, windows: canvas) }
                 ?? primaryWindow(app: app, pid: running.processIdentifier, windows: canvas)
                 ?? (try? AppCatalog.targetWindow(app: app, windowID: nil, windows: canvas))
             guard let target else {
@@ -257,17 +238,20 @@ public actor SkyEngine: CUAEngine {
             let running = try AppCatalog.running(params.app)
             let app = AppCatalog.identifier(running)
             let allWindows = AppCatalog.windows().filter { $0.app == app }
-            // 1×1 helper / 离屏 back-buffer 窗口会污染 app state，只在 listWindows 里保留。
-            let visibleWindows = allWindows.filter { $0.bounds.width > 200 && $0.bounds.height > 100 }
+            // Preserve all window metadata; target selection remains separate.
+            let visibleWindows = allWindows
             // 每次调用都使旧表失效（即使本次只要截图）。全量文本是默认行为，disableDiff 暂不做增量。
             snapshots[app] = nil
             let currentGeneration = generation
             let wantText = params.includeText ?? true
             let wantScreenshot = params.includeScreenshot ?? true
-            let requested = params.windowId.flatMap { id in allWindows.first { $0.id == id } }
+            let requested = try params.windowId.map { try AppCatalog.targetWindow(app: app, windowID: $0, windows: allWindows) }
 
             // 先读 AX 根节点：它的 frame 是把公开 AX 窗口映射回窗口服务器条目的可靠桥梁
             // （公开 AX API 不暴露 CGWindowID）。
+            guard (1...6000).contains(params.limit ?? 6000), (0...40).contains(params.depth ?? 40) else {
+                throw CUAError.invalidParams("limit must be 1...6000 and depth 0...40", method: "getAppState")
+            }
             var snapshot: AXSnapshot?
             if wantText {
                 snapshot = try accessibilitySnapshot(app: running, window: requested)
@@ -277,25 +261,32 @@ public actor SkyEngine: CUAEngine {
                 ?? primaryWindow(app: app, pid: running.processIdentifier, windows: allWindows)
 
             var state = CUAAppState(app: app, windows: visibleWindows)
-            if wantText, let snapshot {
+            state.info = inspectionInfo(running, window: target)
+
+            if wantText, var snapshot {
                 guard generation == currentGeneration else { throw CUAError(code: .elementIndexStale, message: "Session reset during capture") }
+                snapshot.stamp = IndexStamp(pid: running.processIdentifier, windowID: target?.id, capturedAt: snapshot.stamp.capturedAt)
                 snapshots[app] = snapshot
-                let nodes = AXFormat.filter(snapshot.nodes, query: params.query)
+                let bounded = AXFormat.bounded(AXFormat.filter(snapshot.nodes, query: params.query), limit: params.limit ?? 6000, depth: params.depth ?? 40)
+                let nodes = bounded.nodes
                 let title = snapshot.rootTitle ?? target?.title
-                let tree = AXFormat.render(nodes, windowTitle: title, truncated: snapshot.truncated)
+                let tree = AXFormat.render(nodes, windowTitle: title, truncated: snapshot.truncated || bounded.truncated)
                 var focused: String?, selected: [String] = []
                 func inspect(_ node: CUAAccessibilityNode) {
                     if node.states.contains("focused") { focused = "[\(node.index)] \(node.title ?? node.role)" }
                     if node.states.contains("selected") { selected.append("[\(node.index)] \(node.title ?? node.role)") }
                     node.children.forEach(inspect)
                 }
-                nodes.forEach(inspect)
+                snapshot.nodes.forEach(inspect)
                 let axApp = AXUIElementCreateApplication(running.processIdentifier)
                 AXUIElementSetMessagingTimeout(axApp, 0.12)
                 let focusedElement = AXAccess.element(AXAccess.value(axApp, kAXFocusedUIElementAttribute))
                 let selectedText = focusedElement.flatMap { AXAccess.value($0, kAXSelectedTextAttribute) as? String }
                 state.accessibility = CUAAccessibilityState(tree: tree, focusedElement: focused, selectedText: selectedText,
                                                             selectedElements: selected.isEmpty ? nil : selected)
+                state.accessibility?.nodes = nodes
+                state.accessibility?.truncated = snapshot.truncated || bounded.truncated
+                state.accessibility?.snapshotId = "\(running.processIdentifier):\(snapshot.stamp.capturedAt.timeIntervalSince1970)"
                 state.text = "App: \(running.localizedName ?? app) (\(app))\n" + tree
             }
             if wantScreenshot {
@@ -341,7 +332,7 @@ public actor SkyEngine: CUAEngine {
         }
     }
 
-    private func resolve(_ app: NSRunningApplication, index: Int, windowID: UInt32?) throws -> AXUIElement {
+    func resolve(_ app: NSRunningApplication, index: Int, windowID: UInt32?) throws -> AXUIElement {
         let id = AppCatalog.identifier(app)
         guard let snapshot = snapshots[id] else { throw CUAError(code: .elementIndexStale, message: "Call getAppState before using element indices") }
         try snapshot.stamp.validate(pid: app.processIdentifier, windowID: windowID)
@@ -360,33 +351,6 @@ public actor SkyEngine: CUAEngine {
         CUALogger(CUALog.engine).info("activation policy: \(activate ? "foreground (may raise windows)" : "background")")
     }
 
-    /// Coarse content fingerprint used to detect no-op background actions
-    /// (pid-targeted mouse events are not delivered to most AppKit controls).
-    private func fingerprint(_ nodes: [CUAAccessibilityNode]) -> Int {
-        // Structural fingerprint: ignore volatile static text/content, keep
-        // window/list/button/tab labels. A background AXPress that "succeeds"
-        // but changes nothing (WeChat sidebar) is detected by equality here.
-        let structural: Set<String> = [
-            "AXWindow", "AXSheet", "AXList", "AXOutline", "AXTabGroup", "AXToolbar",
-            "AXButton", "AXRadioButton", "AXCheckBox", "AXPopUpButton", "AXComboBox",
-            "AXSplitGroup", "AXMenuBar", "AXMenuItem", "AXMenuItemCheckbox", "AXScrollArea"
-        ]
-        var hasher = Hasher()
-        func visit(_ node: CUAAccessibilityNode) {
-            if structural.contains(node.role) {
-                hasher.combine(node.role)
-                hasher.combine(node.title ?? "")
-                if let frame = node.frame {
-                    hasher.combine(Int(frame.x)); hasher.combine(Int(frame.y))
-                    hasher.combine(Int(frame.width)); hasher.combine(Int(frame.height))
-                }
-            }
-            node.children.forEach(visit)
-        }
-        nodes.forEach(visit)
-        return hasher.finalize()
-    }
-
     /// Resolves the target app without raising it. All input paths post events
     /// directly to the app's event queue (`CGEventPostToPid`) or use AX
     /// semantic actions, so the user's foreground app and physical cursor are
@@ -399,7 +363,7 @@ public actor SkyEngine: CUAEngine {
             _ = try AppCatalog.targetWindow(app: AppCatalog.identifier(app), windowID: windowID, windows: AppCatalog.windows())
         }
         if allowActivation {
-            _ = ensureActive(app)
+            guard ensureActive(app) else { throw CUAError(code: .inputRejected, message: "Target did not become foreground; no global input posted") }
         }
         return app
     }
@@ -417,7 +381,7 @@ public actor SkyEngine: CUAEngine {
         _ = app.activate(options: [.activateAllWindows])
         for _ in 0..<25 {
             RunLoop.current.run(until: Date().addingTimeInterval(0.04))
-            if app.isActive || NSWorkspace.shared.frontmostApplication?.processIdentifier == pid { return true }
+            if NSWorkspace.shared.frontmostApplication?.processIdentifier == pid { return true }
         }
         return NSWorkspace.shared.frontmostApplication?.processIdentifier == pid
     }
@@ -456,12 +420,17 @@ public actor SkyEngine: CUAEngine {
         }
     }
 
-    public func click(_ params: ClickParams) async throws {
+    public func click(_ params: ClickParams) async throws -> CUAActionResult {
         let trace = CursorTrace(action: "click", allowActivation: actionActivation)
         let context = InputContext(allowActivation: actionActivation, trace: trace)
         return try InputSynthesis.$context.withValue(context) {
             trace.record("before")
             defer { trace.record("after") }
+            let desktop = desktopInfo()
+            let before = observe(params.app, index: params.elementIndex)
+            var path = "ax-press"
+            func outcome() -> CUAActionResult { result(before: before, desktop: desktop, app: params.app, index: params.elementIndex, path: path) }
+
             guard let button = CUAMouseButton.parse(params.mouseButton ?? "left") else { throw CUAError.invalidParams("Invalid mouse button", method: "click") }
             let duration = try InputSynthesis.duration(params.durationMilliseconds)
             let count = params.clickCount ?? 1
@@ -471,14 +440,20 @@ public actor SkyEngine: CUAEngine {
                 if let modifier = KeyChord.modifier(key) { flags = modifier }
                 else { flags = try KeyChord.parse(key).flags }
             }
+            guard (params.elementIndex != nil && params.x == nil && params.y == nil) || (params.elementIndex == nil && params.x?.isFinite == true && params.y?.isFinite == true),
+                  ["window", "global"].contains(params.coordinateSpace ?? "window"), ["auto", "coordinate", "ax"].contains(params.strategy ?? "auto") else {
+                throw CUAError.invalidParams("Specify element OR finite x/y; coordinateSpace window|global; strategy auto|coordinate|ax", method: "click")
+            }
             let app = try prepareTarget(params.app, windowID: params.windowId)
-            if let index = params.elementIndex, params.key == nil, button == .left, count == 1, params.durationMilliseconds == nil {
+            if let index = params.elementIndex, params.strategy != "coordinate", params.key == nil, button == .left, count == 1, params.durationMilliseconds == nil {
                 let element = try resolve(app, index: index, windowID: params.windowId)
                 let status = AXUIElementPerformAction(element, kAXPressAction as CFString)
-                if status == .success { return }
+                if status == .success { return outcome() }
                 if status == .invalidUIElement || status == .cannotComplete { try AXAccess.check(status, context: "Press element") }
             }
-            let location = try point(app: app, index: params.elementIndex, x: params.x, y: params.y, windowID: params.windowId)
+            if params.strategy == "ax" { throw CUAError(code: .unsupported, message: "AXPress unavailable for requested click") }
+            path = allowActivation ? "global-coordinate" : "pid-coordinate"
+            let location = try params.coordinateSpace == "global" && params.elementIndex == nil ? CGPoint(x: params.x!, y: params.y!) : point(app: app, index: params.elementIndex, x: params.x, y: params.y, windowID: params.windowId)
             if !allowActivation, params.elementIndex == nil {
                 // Public API cannot deliver a background mouse click: CGEventPostToPid
                 // reaches the app's queue but AppKit controls ignore it without a key
@@ -493,29 +468,41 @@ public actor SkyEngine: CUAEngine {
                 try InputSynthesis.click(at: location, button: button, count: count, flags: flags, duration: duration,
                                          pid: app.processIdentifier)
             }
+            return outcome()
         }
     }
 
-    public func pressKey(_ params: PressKeyParams) async throws {
+    public func pressKey(_ params: PressKeyParams) async throws -> CUAActionResult {
         let trace = CursorTrace(action: "pressKey", allowActivation: actionActivation)
         let context = InputContext(allowActivation: actionActivation, trace: trace)
         return try InputSynthesis.$context.withValue(context) {
             trace.record("before")
             defer { trace.record("after") }
+            let desktop = desktopInfo()
+            let before = observe(params.app, index: nil)
+            let path = allowActivation ? "global-keyboard" : "pid-keyboard"
+            func outcome() -> CUAActionResult { result(before: before, desktop: desktop, app: params.app, index: nil, path: path) }
+
             let chord = try KeyChord.parse(params.key)
             let duration = try InputSynthesis.duration(params.durationMilliseconds)
             let app = try prepareTarget(params.app, windowID: params.windowId)
             if allowActivation { try InputSynthesis.key(chord, duration: duration) }
             else { try InputSynthesis.key(chord, duration: duration, pid: app.processIdentifier) }
+            return outcome()
         }
     }
 
-    public func typeText(_ params: TypeTextParams) async throws {
+    public func typeText(_ params: TypeTextParams) async throws -> CUAActionResult {
         let trace = CursorTrace(action: "typeText", allowActivation: actionActivation)
         let context = InputContext(allowActivation: actionActivation, trace: trace)
         return try InputSynthesis.$context.withValue(context) {
             trace.record("before")
             defer { trace.record("after") }
+            let desktop = desktopInfo()
+            let before = observe(params.app, index: params.elementIndex)
+            var path = allowActivation ? "global-unicode" : "pid-unicode"
+            func outcome() -> CUAActionResult { result(before: before, desktop: desktop, app: params.app, index: params.elementIndex, path: path) }
+
             let app = try prepareTarget(params.app, windowID: params.windowId)
             if let index = params.elementIndex {
                 let element = try resolve(app, index: index, windowID: params.windowId)
@@ -523,21 +510,28 @@ public actor SkyEngine: CUAEngine {
                 if let current = AXAccess.value(element, kAXValueAttribute) as? String,
                    AXUIElementSetAttributeValue(element, kAXValueAttribute as CFString,
                                                 (current + params.text) as CFString) == .success {
-                    return
+                    path = "ax-set:AXValue"
+                    return outcome()
                 }
                 try focus(element, pid: app.processIdentifier)
             }
             if allowActivation { try InputSynthesis.text(params.text) }
             else { try InputSynthesis.text(params.text, pid: app.processIdentifier) }
+            return outcome()
         }
     }
 
-    public func scroll(_ params: ScrollParams) async throws {
+    public func scroll(_ params: ScrollParams) async throws -> CUAActionResult {
         let trace = CursorTrace(action: "scroll", allowActivation: actionActivation)
         let context = InputContext(allowActivation: actionActivation, trace: trace)
         return try InputSynthesis.$context.withValue(context) {
             trace.record("before")
             defer { trace.record("after") }
+            let desktop = desktopInfo()
+            let before = observe(params.app, index: params.elementIndex)
+            let path = allowActivation ? "global-scroll" : "pid-scroll"
+            func outcome() -> CUAActionResult { result(before: before, desktop: desktop, app: params.app, index: params.elementIndex, path: path) }
+
             let app = try prepareTarget(params.app, windowID: params.windowId)
             let location = try point(app: app, index: params.elementIndex, x: params.x, y: params.y, windowID: params.windowId)
             var dx = params.scrollX ?? 0, dy = params.scrollY ?? 0
@@ -564,20 +558,27 @@ public actor SkyEngine: CUAEngine {
             } else {
                 try InputSynthesis.scroll(at: location, dx: dx, dy: dy, pid: app.processIdentifier)
             }
+            return outcome()
         }
     }
 
-    public func setValue(_ params: SetValueParams) async throws {
+    public func setValue(_ params: SetValueParams) async throws -> CUAActionResult {
         let trace = CursorTrace(action: "setValue", allowActivation: actionActivation)
         let context = InputContext(allowActivation: actionActivation, trace: trace)
         return try InputSynthesis.$context.withValue(context) {
             trace.record("before")
             defer { trace.record("after") }
+            let desktop = desktopInfo()
+            let before = observe(params.app, index: params.elementIndex)
+            var path = "ax-set:AXValue"
+            func outcome() -> CUAActionResult { result(before: before, desktop: desktop, app: params.app, index: params.elementIndex, path: path) }
+
             let app = try prepareTarget(params.app, windowID: params.windowId)
             let element = try resolve(app, index: params.elementIndex, windowID: params.windowId)
             let status = AXUIElementSetAttributeValue(element, kAXValueAttribute as CFString, params.value as CFString)
-            if status == .success { return }
+            if status == .success { return outcome() }
             if status == .invalidUIElement || status == .cannotComplete { try AXAccess.check(status, context: "Set value") }
+            path = allowActivation ? "global-keyboard-replace" : "pid-keyboard-replace"
             try focus(element, pid: app.processIdentifier)
             if allowActivation {
                 try InputSynthesis.key(KeyChord.parse("Cmd+a"))
@@ -588,15 +589,21 @@ public actor SkyEngine: CUAEngine {
                 if params.value.isEmpty { try InputSynthesis.key(KeyChord.parse("BackSpace"), pid: app.processIdentifier) }
                 else { try InputSynthesis.text(params.value, pid: app.processIdentifier) }
             }
+            return outcome()
         }
     }
 
-    public func drag(_ params: DragParams) async throws {
+    public func drag(_ params: DragParams) async throws -> CUAActionResult {
         let trace = CursorTrace(action: "drag", allowActivation: actionActivation)
         let context = InputContext(allowActivation: actionActivation, trace: trace)
         return try InputSynthesis.$context.withValue(context) {
             trace.record("before")
             defer { trace.record("after") }
+            let desktop = desktopInfo()
+            let before = observe(params.app, index: nil)
+            let path = allowActivation ? "global-drag" : "pid-drag"
+            func outcome() -> CUAActionResult { result(before: before, desktop: desktop, app: params.app, index: nil, path: path) }
+
             let app = try prepareTarget(params.app, windowID: params.windowId)
             let start = try point(app: app, index: nil, x: params.fromX, y: params.fromY, windowID: params.windowId)
             let end = try point(app: app, index: nil, x: params.toX, y: params.toY, windowID: params.windowId)
@@ -612,28 +619,40 @@ public actor SkyEngine: CUAEngine {
             } else {
                 try InputSynthesis.drag(from: start, to: end, pid: app.processIdentifier)
             }
+            return outcome()
         }
     }
 
-    public func paste(_ params: PasteParams) async throws {
+    public func paste(_ params: PasteParams) async throws -> CUAActionResult {
         let trace = CursorTrace(action: "paste", allowActivation: actionActivation)
         let context = InputContext(allowActivation: actionActivation, trace: trace)
         return try InputSynthesis.$context.withValue(context) {
             trace.record("before")
             defer { trace.record("after") }
+            let desktop = desktopInfo()
+            let before = observe(params.app, index: nil)
+            let path = allowActivation ? "global-pasteboard-keyboard" : "pid-pasteboard-keyboard"
+            func outcome() -> CUAActionResult { result(before: before, desktop: desktop, app: params.app, index: nil, path: path) }
+
             guard let format = CUAPasteFormat(rawValue: params.format ?? "text") else { throw CUAError.invalidParams("Invalid paste format", method: "paste") }
             let app = try prepareTarget(params.app, windowID: params.windowId)
             if allowActivation { try InputSynthesis.paste(params.text, format: format) }
             else { try InputSynthesis.paste(params.text, format: format, pid: app.processIdentifier) }
+            return outcome()
         }
     }
 
-    public func selectText(_ params: SelectTextParams) async throws {
+    public func selectText(_ params: SelectTextParams) async throws -> CUAActionResult {
         let trace = CursorTrace(action: "selectText", allowActivation: actionActivation)
         let context = InputContext(allowActivation: actionActivation, trace: trace)
         return try InputSynthesis.$context.withValue(context) {
             trace.record("before")
             defer { trace.record("after") }
+            let desktop = desktopInfo()
+            let before = observe(params.app, index: params.elementIndex)
+            var path = "ax-set:AXSelectedTextRange"
+            func outcome() -> CUAActionResult { result(before: before, desktop: desktop, app: params.app, index: params.elementIndex, path: path) }
+
             guard let type = CUASelectionType(rawValue: params.selectionType ?? "text") else { throw CUAError.invalidParams("Invalid selectionType", method: "selectText") }
             let app = try prepareTarget(params.app, windowID: params.windowId)
             let element = try resolve(app, index: params.elementIndex, windowID: params.windowId)
@@ -642,39 +661,48 @@ public actor SkyEngine: CUAEngine {
             try focus(element, pid: app.processIdentifier)
             if let value = AXValueCreate(.cfRange, &range) {
                 let status = AXUIElementSetAttributeValue(element, kAXSelectedTextRangeAttribute as CFString, value)
-                if status == .success { return }
+                if status == .success { return outcome() }
                 if status == .invalidUIElement || status == .cannotComplete { try AXAccess.check(status, context: "Select text") }
             }
+            path = allowActivation ? "global-keyboard-selection" : "pid-keyboard-selection"
             // 回退按 grapheme 移动光标，而非将 UTF-16 代理对误算成两次方向键。
             let ns = source as NSString
-            let before = ns.substring(to: range.location).count
+            let prefixCount = ns.substring(to: range.location).count
             let count = ns.substring(with: NSRange(location: range.location, length: range.length)).count
-            guard before + count <= 4000 else { throw CUAError(code: .inputRejected, message: "Keyboard selection fallback exceeds 4000 characters") }
+            guard prefixCount + count <= 4000 else { throw CUAError(code: .inputRejected, message: "Keyboard selection fallback exceeds 4000 characters") }
             if allowActivation {
                 try InputSynthesis.key(KeyChord.parse("Cmd+Home"))
-                for _ in 0..<before { try InputSynthesis.key(KeyChord.parse("Right"), duration: 0) }
+                for _ in 0..<prefixCount { try InputSynthesis.key(KeyChord.parse("Right"), duration: 0) }
                 for _ in 0..<count { try InputSynthesis.key(KeyChord.parse("Shift+Right"), duration: 0) }
             } else {
                 try InputSynthesis.key(KeyChord.parse("Cmd+Home"), pid: app.processIdentifier)
-                for _ in 0..<before { try InputSynthesis.key(KeyChord.parse("Right"), duration: 0, pid: app.processIdentifier) }
+                for _ in 0..<prefixCount { try InputSynthesis.key(KeyChord.parse("Right"), duration: 0, pid: app.processIdentifier) }
                 for _ in 0..<count { try InputSynthesis.key(KeyChord.parse("Shift+Right"), duration: 0, pid: app.processIdentifier) }
             }
+            return outcome()
         }
     }
 
-    public func performSecondaryAction(_ params: PerformSecondaryActionParams) async throws {
+    public func performSecondaryAction(_ params: PerformSecondaryActionParams) async throws -> CUAActionResult {
         let trace = CursorTrace(action: "performSecondaryAction", allowActivation: actionActivation)
         let context = InputContext(allowActivation: actionActivation, trace: trace)
         return try InputSynthesis.$context.withValue(context) {
             trace.record("before")
             defer { trace.record("after") }
+            let desktop = desktopInfo()
+            let before = observe(params.app, index: params.elementIndex)
+            var path = "ax-action"
+            func outcome() -> CUAActionResult { result(before: before, desktop: desktop, app: params.app, index: params.elementIndex, path: path) }
+
             let app = try prepareTarget(params.app, windowID: params.windowId)
             let element = try resolve(app, index: params.elementIndex, windowID: params.windowId)
-            let action = AXAccess.actions(element).first { $0.caseInsensitiveCompare(params.action) == .orderedSame } ?? params.action
+            let action = try AXPrimitive.name(params.action, available: AXAccess.actions(element))
+            path = "ax-action:\(action)"
             guard allowActivation || action.caseInsensitiveCompare(kAXRaiseAction) != .orderedSame else {
                 throw CUAError(code: .inputRejected, message: "AXRaise is forbidden in background mode; rerun with --activate")
             }
             try AXAccess.check(AXUIElementPerformAction(element, action as CFString), context: "Perform \(action)")
+            return outcome()
         }
     }
 }

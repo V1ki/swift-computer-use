@@ -18,15 +18,15 @@ actor FakeEngine: CUAEngine {
     }
     func listWindows() async throws -> [CUAWindowInfo] { [] }
     func getAppState(_ params: GetAppStateParams) async throws -> CUAAppState { CUAAppState(app: params.app, text: "Fake tree") }
-    func click(_ params: ClickParams) async throws { calls.append("click") }
-    func pressKey(_ params: PressKeyParams) async throws { calls.append("pressKey") }
-    func typeText(_ params: TypeTextParams) async throws { calls.append("typeText") }
-    func scroll(_ params: ScrollParams) async throws { calls.append("scroll") }
-    func setValue(_ params: SetValueParams) async throws { calls.append("setValue") }
-    func drag(_ params: DragParams) async throws { calls.append("drag") }
-    func paste(_ params: PasteParams) async throws { calls.append("paste") }
-    func selectText(_ params: SelectTextParams) async throws { calls.append("selectText") }
-    func performSecondaryAction(_ params: PerformSecondaryActionParams) async throws { calls.append("secondary") }
+    func click(_ params: ClickParams) async throws -> CUAActionResult { calls.append("click"); return CUAActionResult() }
+    func pressKey(_ params: PressKeyParams) async throws -> CUAActionResult { calls.append("pressKey"); return CUAActionResult() }
+    func typeText(_ params: TypeTextParams) async throws -> CUAActionResult { calls.append("typeText"); return CUAActionResult() }
+    func scroll(_ params: ScrollParams) async throws -> CUAActionResult { calls.append("scroll"); return CUAActionResult() }
+    func setValue(_ params: SetValueParams) async throws -> CUAActionResult { calls.append("setValue"); return CUAActionResult() }
+    func drag(_ params: DragParams) async throws -> CUAActionResult { calls.append("drag"); return CUAActionResult() }
+    func paste(_ params: PasteParams) async throws -> CUAActionResult { calls.append("paste"); return CUAActionResult() }
+    func selectText(_ params: SelectTextParams) async throws -> CUAActionResult { calls.append("selectText"); return CUAActionResult() }
+    func performSecondaryAction(_ params: PerformSecondaryActionParams) async throws -> CUAActionResult { calls.append("secondary"); return CUAActionResult() }
     func captureScreenshot(_ params: CaptureScreenshotParams) async throws -> [CUAScreenshot] { [] }
     func resetSessionState() async { calls.append("reset") }
 }
@@ -123,6 +123,22 @@ final class ServiceTests: XCTestCase, @unchecked Sendable {
         await engine.setPermissions(CUAPermissions(screenRecording: false, accessibility: true))
         let capture = await router.route(request)
         XCTAssertEqual(capture?.error?.data?["permission"]?.stringValue, "ScreenRecording")
+    }
+    func testAXRoutingAuthorizationAndActionEvidence() async throws {
+        let (engine, _, router) = try fixture()
+        let params: JSONValue = .object(["app": "test.app", "sessionId": "test-session", "elementIndex": 0, "attribute": "AXRole"])
+        let missing = await router.route(RPCRequest(id: .int(1), method: "axGet", params: params))
+        XCTAssertEqual(missing?.error?.code, CUAErrorCode.sessionNotFound.rawValue)
+        _ = await ping(router)
+        await engine.setPermissions(CUAPermissions(screenRecording: true, accessibility: false))
+        let denied = await router.route(RPCRequest(id: .int(2), method: "axGet", params: params))
+        XCTAssertEqual(denied?.error?.code, CUAErrorCode.permissionMissing.rawValue)
+        await engine.setPermissions(CUAPermissions(screenRecording: false, accessibility: true))
+        let unsupported = await router.route(RPCRequest(id: .int(3), method: "axGet", params: params))
+        XCTAssertEqual(unsupported?.error?.code, CUAErrorCode.unsupported.rawValue)
+        let result = await router.route(RPCRequest(id: .int(4), method: "click", params: params))
+        XCTAssertEqual(result?.result?["accepted"], .bool(true))
+        XCTAssertEqual(result?.result?["effect"], "unverified")
     }
     func testEndSessionDeletesFileAndResetsEngine() async throws {
         let (engine, _, router) = try fixture()

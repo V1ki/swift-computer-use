@@ -88,13 +88,12 @@ actor RequestRouter {
         else { _ = try await sessions.requireSession(params?["sessionId"]?.stringValue) }
     }
     private func action<T: Decodable & Sendable>(_ type: T.Type, _ method: CUAMethod, _ params: JSONValue?,
-                                               body: @Sendable (T) async throws -> Void) async throws -> JSONValue {
+                                               body: @Sendable (T) async throws -> CUAActionResult) async throws -> JSONValue {
         let value = try decode(type, params, method)
         try await authorize(params, app: params?["app"]?.stringValue)
         try await gate.check(accessibility: true)
         try Task.checkCancellation()
-        try await body(value)
-        return .object([:])
+        return try CUACodec.jsonValue(await body(value))
     }
     private func dispatch(_ method: CUAMethod, params: JSONValue?) async throws -> JSONValue {
         switch method {
@@ -123,6 +122,11 @@ actor RequestRouter {
             try await gate.check(accessibility: value.includeText ?? true, screenRecording: value.includeScreenshot ?? true)
             try Task.checkCancellation()
             return try CUACodec.jsonValue(GetAppStateResult(state: try await engine.getAppState(value)))
+        case .axGet, .axSet, .axAction, .axFocus, .axAttributes, .axActions:
+            let value = try decode(AXParams.self, params, method)
+            try await authorize(params, app: value.app)
+            try await gate.check(accessibility: true)
+            return try await engine.ax(method, params: value)
         case .click: return try await action(ClickParams.self, method, params) { try await self.engine.click($0) }
         case .pressKey: return try await action(PressKeyParams.self, method, params) { try await self.engine.pressKey($0) }
         case .typeText: return try await action(TypeTextParams.self, method, params) { try await self.engine.typeText($0) }

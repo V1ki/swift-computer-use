@@ -77,8 +77,12 @@ enum MCPTools {
             "includeScreenshot": field("boolean", "Capture screenshot, default true"),
             "includeText": field("boolean", "Capture accessibility text, default true"),
             "disableDiff": field("boolean", "Return full tree instead of a diff"),
+            "limit": field("integer", "Maximum output nodes", minimum: 1, maximum: 6000),
+            "depth": field("integer", "Maximum output depth", minimum: 0, maximum: 40),
             "query": field("string", "Case-insensitive accessibility tree filter")], required: ["app"], target: true),
         tool("click", .click, "Click an element or window-relative x/y coordinates", [
+            "coordinateSpace": field("string", "Coordinate space", values: ["window", "global"]),
+            "strategy": field("string", "Element click route", values: ["auto", "ax", "coordinate"]),
             "elementIndex": element, "x": coordinate, "y": coordinate,
             "clickCount": field("integer", "Number of clicks", minimum: 1),
             "mouseButton": field("string", "Mouse button", values: ["left", "right", "middle", "l", "r", "m"]),

@@ -11,8 +11,8 @@ import Foundation
 ///   Subsequent element-targeted calls must resolve `elementIndex` against that
 ///   table and throw `.elementIndexStale` when the table is missing, or
 ///   `.elementNotFound` when the index is out of range.
-/// - Input methods activate the target app window unless a window id pins them.
-/// - Coordinate-based input is window-relative, matching the original client.
+/// - Input methods are background-only unless explicitly opted into activation.
+/// - Coordinates are window-relative unless click explicitly selects global space.
 public protocol CUAEngine: Sendable {
     /// Current privacy-permission state without prompting.
     func permissions() async -> CUAPermissions
@@ -29,15 +29,17 @@ public protocol CUAEngine: Sendable {
     /// Captures screenshot and/or accessibility tree for one app.
     func getAppState(_ params: GetAppStateParams) async throws -> CUAAppState
 
-    func click(_ params: ClickParams) async throws
-    func pressKey(_ params: PressKeyParams) async throws
-    func typeText(_ params: TypeTextParams) async throws
-    func scroll(_ params: ScrollParams) async throws
-    func setValue(_ params: SetValueParams) async throws
-    func drag(_ params: DragParams) async throws
-    func paste(_ params: PasteParams) async throws
-    func selectText(_ params: SelectTextParams) async throws
-    func performSecondaryAction(_ params: PerformSecondaryActionParams) async throws
+    func click(_ params: ClickParams) async throws -> CUAActionResult
+    func pressKey(_ params: PressKeyParams) async throws -> CUAActionResult
+    func typeText(_ params: TypeTextParams) async throws -> CUAActionResult
+    func scroll(_ params: ScrollParams) async throws -> CUAActionResult
+    func setValue(_ params: SetValueParams) async throws -> CUAActionResult
+    func drag(_ params: DragParams) async throws -> CUAActionResult
+    func paste(_ params: PasteParams) async throws -> CUAActionResult
+    func selectText(_ params: SelectTextParams) async throws -> CUAActionResult
+    func performSecondaryAction(_ params: PerformSecondaryActionParams) async throws -> CUAActionResult
+
+    func ax(_ method: CUAMethod, params: AXParams) async throws -> JSONValue
 
     /// Raw screenshot capture outside of `getAppState` (display, window or app).
     func captureScreenshot(_ params: CaptureScreenshotParams) async throws -> [CUAScreenshot]
@@ -64,6 +66,10 @@ public extension CUAEngine {
             code: .unsupported,
             message: "launchApp is not implemented by this engine"
         )
+    }
+
+    func ax(_ method: CUAMethod, params: AXParams) async throws -> JSONValue {
+        throw CUAError(code: .unsupported, message: "AX primitives not implemented by this engine")
     }
 
     func resetSessionState() async {}
