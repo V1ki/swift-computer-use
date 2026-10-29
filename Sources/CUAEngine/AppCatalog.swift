@@ -29,6 +29,9 @@ enum AppCatalog {
                   let raw = item[kCGWindowBounds as String] as? NSDictionary,
                   let bounds = CGRect(dictionaryRepresentation: raw), bounds.width > 0, bounds.height > 0,
                   let app = NSRunningApplication(processIdentifier: pid) else { return nil }
+            // 系统 UI 代理（TextInputUI、Control Center、Dock…）也会在 layer 0 里
+            // 报窗口；只保留 Dock 可见的常规应用，避免几十个无意义条目淹没结果。
+            guard app.activationPolicy == .regular else { return nil }
             let onScreen = item[kCGWindowIsOnscreen as String] as? Bool ?? false
             // CG 列表按前后顺序排列；无 AX 权限时以最前方普通窗口近似焦点。
             let focused = pid == frontPID && onScreen && !focusedAssigned

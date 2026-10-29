@@ -116,11 +116,21 @@ cd js && npm link          # 或 npm install /path/to/swift-computer-use/js
 
 > `re/raw/` 里的原始 dump 有数百 MB，未入库；每份报告都给出复现命令与 `run.sh`。
 
+## 6. 验证状态
+
+- **测试**：40 个 Swift 单元测试 + 21 个 JS 测试 + `scripts/smoke.sh` 端到端冒烟，全部通过。
+- **协议**：安装版服务 ping / list_apps(327) / 会话授权 TOML / 权限门错误码实测通过。
+- **引擎**：开发版服务（继承终端 TCC）实测 AX 树 1233 元素、`--query` 过滤、窗口映射与 2560×1410 JPEG 截图。
+- **待用户授权**：安装版服务的屏幕录制/辅助功能授权、真实鼠标键盘注入（会抢占前台，未自动执行）。
+
+完整证据见 [`docs/VALIDATION.md`](docs/VALIDATION.md)。
+
 ## 6. 架构与协议
 
 - [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) —— 进程图、模块边界、四条引擎管线、与原实现的差异
 - [`docs/PROTOCOL.md`](docs/PROTOCOL.md) —— 完整线协议：分帧、握手、方法表、错误码、超时
 - [`docs/COMPATIBILITY.md`](docs/COMPATIBILITY.md) —— `@oai/sky` 方法映射与已知差异
+- [`docs/VALIDATION.md`](docs/VALIDATION.md) —— 本机实测记录（测试、AX 树、截图、安装状态）
 
 ## 7. 安全模型
 

@@ -155,7 +155,7 @@ export class MCPServer {
         case 'tools/call': {
           const params = message.params;
           if (!params || typeof params.name !== 'string') throw protocolError(-32602, 'tools/call 需要 name 和 arguments');
-          result = await this.callTool(params.name, params.arguments ?? {});
+          result = await this.callTool(params.name, params.arguments === undefined ? {} : params.arguments);
           break;
         }
         default: throw protocolError(-32601, `Method not found: ${message.method}`);

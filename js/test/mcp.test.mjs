@@ -41,6 +41,7 @@ test('turn_ended 校验与 MCP 协议错误', async t => {
   for (const args of [{ code: 1 }, { code: '1', title: '' }, { code: '1', title: 'a'.repeat(81) }, { code: '1', timeout_ms: 0 }, { code: '1', timeout_ms: 1.2 }, { code: '1', extra: true }]) {
     assert.equal((await server.handle(request('tools/call', { name: 'js', arguments: args }))).error.code, -32602);
   }
+  assert.equal((await server.handle(request('tools/call', { name: 'js_reset', arguments: null }))).error.code, -32602);
   assert.equal((await server.handle(request('tools/call', { name: 'unknown' }))).error.code, -32602);
   assert.equal((await server.handle(request('unknown'))).error.code, -32601);
   assert.equal((await server.handle({})).error.code, -32600);

@@ -30,7 +30,9 @@ function screenshotInfo(screenshot) {
 
 export function createSky({ socketPath, home, autoConnect = true } = {}) {
   const transport = new Transport({ socketPath, home });
-  const sessionId = randomUUID();
+  // Fallback handle until the service issues one on the ping handshake; the
+  // service only accepts sessions it created itself.
+  let sessionId = randomUUID();
   let ready = null;
   transport.on('close', () => { ready = null; });
 
@@ -42,6 +44,7 @@ export function createSky({ socketPath, home, autoConnect = true } = {}) {
         if (info.apiVersion && info.apiVersion !== API_VERSION) {
           throw Object.assign(new Error(`SwiftCUA API 版本不兼容: ${info.apiVersion}`), { code: 'EVERSION' });
         }
+        if (info.sessionId) sessionId = info.sessionId;
         return info;
       })();
       ready.catch(() => { ready = null; transport.close(); });
