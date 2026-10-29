@@ -1,0 +1,1 @@
+{"name":"@swiftcua/sky","version":"0.1.0","type":"module","engines":{"node":">=18"},"main":"./src/index.mjs","exports":{".":"./src/index.mjs","./client":"./src/client.mjs","./mcp":"./src/mcp-server.mjs"},"bin":{"swiftcua-mcp":"./bin/mcp.mjs"},"files":["src","bin","examples","README.md"],"scripts":{"test":"node --test test/"}}
