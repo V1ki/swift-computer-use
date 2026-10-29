@@ -230,3 +230,11 @@ swift re/raw/engine/background/verify.swift /absolute/path/to/background-action 
 **已完成**：SCK 单窗口持续 12 秒与一次截图运行；系统 start/stop/contentSharing 日志；TextEdit 四项有效后台操作；裸 PID mouse 未成功样本；微信返回0但AX状态未变；原版符号/身份补充；方法级设计与验收监测器。
 
 **未完成**：直接视觉确认紫色及面板/停止按钮；系统停止回调实测；explicit windowID mouse 的动态测试；Finder/SwiftCUA/scroll；应用内部是否“假装激活”的可观测证明；CPU 基准；无外部活动条件下整套严格重复实验。这些留空而不以猜测补齐。原目标包含视觉观察，因此本报告是**可落地且有明确缺口的调查结果，不是宣称所有验收项已完成**。
+
+## 附：后续实现（v0.3）
+
+本报告写就后，SwiftCUA 已补上**自绘 PiP 预览**：`CUACore.PreviewHub` 广播预编码 JPEG 缩略图，
+`CUAService.PreviewUI` 用非激活 `NSPanel`（320×220 HUD）+ `NSStatusItem` 显示实时画面，
+支持停止共享、位置记忆、无帧淡出，`--headless` 可完全关闭。实现与实测见
+[`docs/VALIDATION.md §10`](../docs/VALIDATION.md) 与 `Sources/CUAService/PreviewUI.swift`。
+本报告正文对「原版同时有系统共享面板与自绘 PIP」的判断仍然成立；SwiftCUA 两者都已覆盖。

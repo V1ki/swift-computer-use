@@ -19,6 +19,7 @@ reverse-engineering study of the `Codex Computer Use.app` service — with a dro
 |---|---|
 | `CUAService` | `LSUIElement` 后台服务：AF_UNIX socket、JSON-RPC 2.0（4B LE 长度前缀）、按会话授权 App、权限门 |
 | `CUAEngine` | 无障碍树抓取（AXUIElement）+ 元素索引表、常驻 ScreenCaptureKit 窗口流（系统共享预览）、`CGEventPostToPid` 后台输入、应用与窗口枚举 |
+| `PiP 预览` | 服务内 AppKit 浮窗（320×220 HUD）+ 菜单栏状态项，实时显示受控窗口、可拖动/停止共享/自动淡出 |
 | `cua` | 命令行：`ping`/`apps`/`windows`/`state`/`click`/`press-key`/`type`/`scroll`/`set-value`/`drag`/`paste`/`select-text`/`action`/`screenshot`/`doctor`/`session`/`call` |
 | `cua mcp` | stdio MCP server，16 个工具（含 `find_text` / `click_text`） |
 | `@swiftcua/sky` | Node 客户端：`sky.list_apps()`、`sky.get_app_state()` … 与原 `@oai/sky` 同形，另有 `find_text`/`click_text` |
@@ -137,9 +138,12 @@ cua find-text  --app com.tencent.xinWeChat --text 搜索 --ocr-only   # 强制 O
 - 坐标与键盘走 `CGEventPostToPid` 定向投递（目标 App 收事件，前台 App 与真实光标不受影响）；
 - 需要「真的把窗口拿到前台」时才用 `cua --activate <command>`（或在 MCP/JS 里 `set_options {activate:true}`）。
 
-截图走**常驻 SCStream**（每窗口 2fps，空闲 20s 自动停），因此 macOS 会显示你熟悉的那种
-「正在共享 / 停止共享」系统预览小窗，而不是一闪而过的录屏指示。这也和原版 Codex
-（逆向证据：ControlCenter `contentSharing` 流、`SCStream` 符号）一致。
+截图走**常驻 SCStream**（每窗口 2fps，空闲 20s 自动停），因此 macOS 会显示系统「正在共享」预览。
+
+另外服务自带一个**自绘 PiP 小窗**（对应原版的 `RemoteHostedPIP`）：320×220 HUD 面板 + 菜单栏状态项
+（`viewfinder` 图标），实时显示受控窗口画面、标题、`停止共享` / `×` 按钮；可拖动并记住位置，
+无帧 3 秒后淡出。面板 `canBecomeKey/Main = false` + `nonactivatingPanel`，**不会抢焦点或光标**。
+`cua-service --headless`（或 `SWIFTCUA_HEADLESS=1`）可完全关闭 UI。
 
 ```bash
 cua state --app com.tencent.xinWeChat          # 后台读取，Chrome 保持前台

@@ -254,3 +254,40 @@ ControlCenter[809] (ScreenCaptureKit) -[SCControlCenterManager updateStreamsWith
 3. **自绘 PiP**：原版除系统共享面板外，还有自己的 `RemoteHostedPIPContentPublisher` /
    `RemoteHostedPIPWindowRenderer` / `CUAServiceRemoteHostedPIPController` + `NSStatusItem`
    常驻小窗；SwiftCUA 目前只复现了系统共享预览，未实现自绘 PiP。
+
+## 10. 自绘 PiP 预览（v0.3）
+
+对应原版的 `RemoteHostedPIPContentPublisher` / `RemoteHostedPIPWindowRenderer` + `NSStatusItem`。
+
+### 10.1 实现
+
+- `CUACore.PreviewHub`：actor 广播 `CUAPreviewFrame`（预编码 JPEG，Sendable）；
+- `CUAEngine.WindowStream`：每帧额外生成 ~480px 缩略图并发布；
+- `CUAService.PreviewUI`：`@MainActor` NSPanel（320×220、HUD、`.nonactivatingPanel/.borderless`、
+  `level=.floating`、`canBecomeKey/Main=false`、`orderFrontRegardless`）+ `NSStatusItem`
+  （`viewfinder` 图标），菜单含 显示/隐藏预览、停止共享、版本、退出；
+- `ServiceEntry`：同步 main + `NSApplication` accessory run loop，socket 服务在 detached Task；
+  `--headless` / `SWIFTCUA_HEADLESS=1` 保留纯后台模式。
+
+> 踩坑记录：最初把 `NSApp.run()` 包在 `await MainActor.run { ... }` 里，主 actor 被长期占用，
+> `PreviewHub` 订阅任务永远不执行（日志 `observers=0`），面板不出现；改为同步 main 入口后恢复。
+
+### 10.2 实测
+
+```
+$ cua screenshot --window 152   # 触发窗口流
+# 服务窗口：id=19263 layer=3 on=true bounds=986,292 320x220 name=SwiftCUA
+# 前台 App：ChatGPT → 触发前后不变（不抢焦点）
+```
+
+- 面板实时显示 Chrome 画面，标题 `SwiftCUA · Google Chrome`，右上角 `停止共享` / `×`；
+- 菜单栏出现 `viewfinder` 状态项（截图可见）；
+- 停止请求后约 23s（20s 流空闲 + 3s 无帧）面板自动淡出：`on=false`；
+- 面板固定 320×220（此前 Auto Layout 会撑成 496×310，改为手动 frame 布局）；
+- 拖动位置写入 UserDefaults，重启后恢复并 clamp 在屏幕内。
+
+### 10.3 边界
+
+- 预览面板只显示**受控窗口**，不显示鼠标/点击轨迹；
+- 面板不参与输入（`canBecomeKey=false`），点按按钮不会把焦点从用户当前 App 拿走；
+- 高 DPI 下缩略图固定 ~480px 宽，仅用于预览，不影响 OCR/截图（全分辨率另走流帧）。

@@ -51,8 +51,14 @@ public actor WindowStream {
 
     private var sessions: [UInt32: Session] = [:]
     private var starting: Set<UInt32> = []
+    private var labels: [UInt32: String] = [:]
     private var cleanupTask: Task<Void, Never>?
     private let idleTimeout: TimeInterval = 20
+
+    /// Associates a human-readable app label with a window for the preview UI.
+    public func setLabel(_ app: String, windowID: UInt32) {
+        labels[windowID] = app
+    }
 
     /// Latest frame for a window, starting a stream if needed.
     /// Returns nil when ScreenCaptureKit cannot share that window; callers then
@@ -109,6 +115,30 @@ public actor WindowStream {
         // Do NOT touch lastUsed here: streaming frames would keep the session
         // alive forever. The idle deadline is refreshed only by requests.
         sessions[windowID] = session
+        if let jpeg = Self.thumbnailJPEG(frame.buffer) {
+            let label = labels[windowID]
+            Task { await PreviewHub.shared.publish(CUAPreviewFrame(jpeg: jpeg, app: label, windowID: windowID)) }
+        }
+    }
+
+    /// Downscales to a preview-sized JPEG (~480px wide); full-res frames are
+    /// only used for OCR/screenshots.
+    private nonisolated static func thumbnailJPEG(_ buffer: CVPixelBuffer, maxWidth: Int = 480) -> Data? {
+        guard let image = makeImage(buffer) else { return nil }
+        let scale = min(1.0, Double(maxWidth) / Double(image.width))
+        let width = max(1, Int(Double(image.width) * scale))
+        let height = max(1, Int(Double(image.height) * scale))
+        guard let context = CGContext(data: nil, width: width, height: height, bitsPerComponent: 8,
+                                      bytesPerRow: 0, space: CGColorSpaceCreateDeviceRGB(),
+                                      bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue) else { return nil }
+        context.interpolationQuality = .medium
+        context.draw(image, in: CGRect(x: 0, y: 0, width: width, height: height))
+        guard let scaled = context.makeImage() else { return nil }
+        let data = NSMutableData()
+        guard let destination = CGImageDestinationCreateWithData(data, "public.jpeg" as CFString, 1, nil) else { return nil }
+        CGImageDestinationAddImage(destination, scaled, [kCGImageDestinationLossyCompressionQuality: 0.6] as CFDictionary)
+        guard CGImageDestinationFinalize(destination) else { return nil }
+        return data as Data
     }
 
     private func scheduleCleanup() {

@@ -147,6 +147,28 @@
 从而让 pid 定向的鼠标事件也生效；SwiftCUA 只用公开 API，因此后台鼠标点击在部分 App 上不生效
 （实测微信侧边栏），这类场景仍需要 `--activate`。
 
+### 3.9 自绘 PiP 预览与菜单栏
+
+```
+CUAEngine.WindowStream (SCStream 2fps)
+        │  JPEG 缩略图 (~480px)
+        ▼
+CUACore.PreviewHub (actor 广播, Sendable)
+        │
+        ▼
+CUAService.PreviewUI (@MainActor)
+   ├─ NSPanel: 320×220, .nonactivatingPanel/.borderless, level=.floating
+   │           canBecomeKey=false / canBecomeMain=false / orderFrontRegardless
+   └─ NSStatusItem: viewfinder 图标 + 显示/隐藏/停止共享/退出
+```
+
+- 服务进程在非 headless 模式下以 `NSApplication` accessory 运行；主线程跑 AppKit run loop，
+  socket 服务在 detached Task 中运行（**不能**把 `NSApp.run()` 包进 `MainActor.run`，
+  否则 MainActor 上的订阅任务永远不会执行）。
+- 预览帧只传预编码 JPEG（`CUAPreviewFrame`），NSImage 在 MainActor 解码，避免跨隔离传非 Sendable 对象。
+- 面板无帧 3s 淡出；`停止共享` 异步调用 `WindowStream.stopAll()`，不阻塞菜单/事件循环。
+- `--headless` 完全跳过 AppKit，保留原来纯后台守护进程行为（CI/测试用）。
+
 ## 4. 典型调用链
 
 `sky.get_app_state({app: "com.apple.Safari"})`：

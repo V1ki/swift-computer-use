@@ -30,6 +30,7 @@ enum ScreenCapture {
             targets.sort { $0.isFocused && !$1.isFocused }
             var screenshots: [CUAScreenshot] = []
             for target in targets {
+                await WindowStream.shared.setLabel(target.app, windowID: target.id)
                 guard let window = content.windows.first(where: { $0.windowID == target.id }) else { continue }
                 // Prefer the persistent stream: it powers the macOS sharing
                 // preview and reuses a warm frame instead of a cold capture.
