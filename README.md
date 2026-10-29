@@ -1,5 +1,7 @@
 # SwiftCUA
 
+[![ci](https://github.com/V1ki/swift-computer-use/actions/workflows/ci.yml/badge.svg)](https://github.com/V1ki/swift-computer-use/actions/workflows/ci.yml)
+
 **A from-scratch Swift 6 reimplementation of macOS computer-use tooling, built from a clean-room
 reverse-engineering study of the `Codex Computer Use.app` service — with a drop-in
 `@oai/sky`-compatible JS bridge and an MCP server.**
@@ -116,7 +118,7 @@ cd js && npm link          # 或 npm install /path/to/swift-computer-use/js
 | [`re/03-security-model.md`](re/03-security-model.md) | TCC 权限矩阵、连接级签名/审计校验、会话与 Always-allow 落盘、锁屏授权插件与 Ctrl-Cmd-Q 回锁 |
 | [`re/04-engine-internals.md`](re/04-engine-internals.md) | 截图（SkyLight/SCScreenshotManager）、AX 树（公开 API + 私有 AccessibilitySPI）、输入注入（CGEventPostToPid）、AX 文本格式 |
 
-> `re/raw/` 里的原始 dump 有数百 MB，未入库；每份报告都给出复现命令与 `run.sh`。
+> `re/raw/` 里的原始 dump 有数百 MB，未入库；已入库的只有 `re/raw/*/run.sh` 等小体积复现脚本（见 [re/README.md](re/README.md)）。
 
 ## 6. 验证状态
 
