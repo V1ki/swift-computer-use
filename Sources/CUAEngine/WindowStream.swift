@@ -1,6 +1,5 @@
 import Foundation
 import ScreenCaptureKit
-import CoreImage
 import CoreVideo
 import AppKit
 import CUACore
@@ -9,37 +8,51 @@ import CUACore
 ///
 /// Why a stream instead of one-shot screenshots:
 /// - macOS attributes a persistent `SCStream` to the hosting app and shows the
-///   system "sharing" indicator / Control Center preview — the same UI the
+///   system "sharing" indicator / Video-menu live preview — the same UI the
 ///   original Codex Computer Use surfaces. One-shot `SCScreenshotManager`
 ///   captures only flash the sensor indicator briefly.
-/// - Subsequent frames are nearly free, so AX/OCR actions during one task do
-///   not pay a cold capture each time.
+/// - Subsequent frames are nearly free, so AX/OCR actions during a task do not
+///   pay a cold capture each time.
 ///
-/// The manager keeps sessions alive for `idleTimeout` after the last request,
-/// so the preview stays visible while an agent is working and disappears when
-/// it goes idle.
+/// Sessions stay alive for `idleTimeout` after the last request so the preview
+/// remains visible while an agent works and disappears when it goes idle.
 public actor WindowStream {
     public static let shared = WindowStream()
 
-    private struct PixelFrame: @unchecked Sendable {
+    // MARK: - Sendable boxes
+    // ScreenCaptureKit types are not Sendable. They never leave the capture
+    // pipeline; boxing is only to satisfy Swift 6 region checks on older
+    // toolchains.
+
+    struct PixelFrame: @unchecked Sendable {
         let buffer: CVPixelBuffer
     }
 
-    private struct Session {
-        var stream: SCStream
-        var latest: CVPixelBuffer?
-        var lastUsed: Date
+    /// Owns the stream and its output object so both stay alive together.
+    final class StreamBox: @unchecked Sendable {
+        let stream: SCStream
+        let output: SCStreamOutput
+
+        init(stream: SCStream, output: SCStreamOutput) {
+            self.stream = stream
+            self.output = output
+        }
     }
 
-    private struct ShareableWindow: @unchecked Sendable {
+    struct ShareableWindow: @unchecked Sendable {
         let window: SCWindow
+    }
+
+    private struct Session {
+        let box: StreamBox
+        var latest: CVPixelBuffer?
+        var lastUsed: Date
     }
 
     private var sessions: [UInt32: Session] = [:]
     private var starting: Set<UInt32> = []
     private var cleanupTask: Task<Void, Never>?
     private let idleTimeout: TimeInterval = 20
-    private let queue = DispatchQueue(label: "dev.v1ki.swiftcua.window-stream")
 
     /// Latest frame for a window, starting a stream if needed.
     /// Returns nil when ScreenCaptureKit cannot share that window; callers then
@@ -54,7 +67,13 @@ public actor WindowStream {
             starting.insert(windowID)
             defer { starting.remove(windowID) }
             do {
-                try await start(windowID: windowID)
+                let shared = try await Self.shareableWindow(windowID: windowID)
+                let box = try await Self.startStream(shared) { [weak self] frame in
+                    Task { await self?.receive(windowID: windowID, frame: frame) }
+                }
+                sessions[windowID] = Session(box: box, latest: nil, lastUsed: Date())
+                CUALogger(CUALog.engine).info("capture stream started for window \(windowID)")
+                scheduleCleanup()
             } catch {
                 CUALogger(CUALog.engine).debug("window stream start failed for \(windowID): \(error)")
                 return nil
@@ -77,55 +96,19 @@ public actor WindowStream {
     /// Explicit stop (service shutdown / tests).
     public func stopAll() async {
         for (_, session) in sessions {
-            try? await session.stream.stopCapture()
+            try? await session.box.stream.stopCapture()
         }
         sessions.removeAll()
         cleanupTask?.cancel()
         cleanupTask = nil
     }
 
-    private func start(windowID: UInt32) async throws {
-        guard CGPreflightScreenCaptureAccess() else { throw CUAError.permissionMissing("ScreenRecording") }
-        let shared = try await Self.shareableWindow(windowID: windowID)
-        let window = shared.window
-        let scale = Self.scale(for: window.frame)
-        let configuration = SCStreamConfiguration()
-        configuration.width = max(2, Int(window.frame.width * scale))
-        configuration.height = max(2, Int(window.frame.height * scale))
-        configuration.minimumFrameInterval = CMTime(value: 1, timescale: 2) // 2 fps
-        configuration.showsCursor = false
-        configuration.capturesAudio = false
-        configuration.pixelFormat = kCVPixelFormatType_32BGRA
-        let filter = SCContentFilter(desktopIndependentWindow: window)
-        let stream = SCStream(filter: filter, configuration: configuration, delegate: nil)
-        let output = StreamOutput { [weak self] buffer in
-            let frame = PixelFrame(buffer: buffer)
-            Task { await self?.receive(windowID: windowID, frame: frame) }
-        }
-        try stream.addStreamOutput(output, type: .screen, sampleHandlerQueue: queue)
-        try await stream.startCapture()
-        sessions[windowID] = Session(stream: stream, latest: nil, lastUsed: Date())
-        CUALogger(CUALog.engine).info("capture stream started for window \(windowID)")
-        scheduleCleanup()
-    }
-
     private func receive(windowID: UInt32, frame: PixelFrame) {
         guard var session = sessions[windowID] else { return }
         session.latest = frame.buffer
         // Do NOT touch lastUsed here: streaming frames would keep the session
-        // alive forever. Idle deadline is refreshed only by actual requests.
+        // alive forever. The idle deadline is refreshed only by requests.
         sessions[windowID] = session
-    }
-
-    /// Fetches the SCWindow in a nonisolated helper and returns it through an
-    /// @unchecked Sendable box: SCShareableContent/SCWindow are not Sendable, but
-    /// we only use them to build the filter immediately and never share them.
-    private nonisolated static func shareableWindow(windowID: UInt32) async throws -> ShareableWindow {
-        let content = try await SCShareableContent.excludingDesktopWindows(false, onScreenWindowsOnly: false)
-        guard let window = content.windows.first(where: { $0.windowID == windowID }) else {
-            throw CUAError(code: .elementNotFound, message: "Window \(windowID) is not shareable")
-        }
-        return ShareableWindow(window: window)
     }
 
     private func scheduleCleanup() {
@@ -135,12 +118,49 @@ public actor WindowStream {
             guard !Task.isCancelled else { return }
             let now = Date()
             for (windowID, session) in self.sessions where now.timeIntervalSince(session.lastUsed) > idleTimeout {
-                try? await session.stream.stopCapture()
+                try? await session.box.stream.stopCapture()
                 self.sessions.removeValue(forKey: windowID)
                 CUALogger(CUALog.engine).info("capture stream stopped for window \(windowID)")
             }
             if !self.sessions.isEmpty { self.scheduleCleanup() }
         }
+    }
+
+    // MARK: - Nonisolated ScreenCaptureKit setup
+
+    /// Fetches the SCWindow in a nonisolated helper and returns it through an
+    /// @unchecked Sendable box.
+    private nonisolated static func shareableWindow(windowID: UInt32) async throws -> ShareableWindow {
+        guard CGPreflightScreenCaptureAccess() else { throw CUAError.permissionMissing("ScreenRecording") }
+        let content = try await SCShareableContent.excludingDesktopWindows(false, onScreenWindowsOnly: false)
+        guard let window = content.windows.first(where: { $0.windowID == windowID }) else {
+            throw CUAError(code: .elementNotFound, message: "Window \(windowID) is not shareable")
+        }
+        return ShareableWindow(window: window)
+    }
+
+    /// Builds, wires and starts the stream entirely off-actor so no
+    /// non-Sendable ScreenCaptureKit value crosses an isolation boundary.
+    private nonisolated static func startStream(
+        _ shared: ShareableWindow,
+        handler: @escaping @Sendable (PixelFrame) -> Void
+    ) async throws -> StreamBox {
+        let window = shared.window
+        let scale = scale(for: window.frame)
+        let configuration = SCStreamConfiguration()
+        configuration.width = max(2, Int(window.frame.width * scale))
+        configuration.height = max(2, Int(window.frame.height * scale))
+        configuration.minimumFrameInterval = CMTime(value: 1, timescale: 2) // 2 fps
+        configuration.showsCursor = false
+        configuration.capturesAudio = false
+        configuration.pixelFormat = kCVPixelFormatType_32BGRA
+        let filter = SCContentFilter(desktopIndependentWindow: window)
+        let stream = SCStream(filter: filter, configuration: configuration, delegate: nil)
+        let output = StreamOutput(handler: handler)
+        try stream.addStreamOutput(output, type: .screen,
+                                   sampleHandlerQueue: DispatchQueue(label: "dev.v1ki.swiftcua.stream"))
+        try await stream.startCapture()
+        return StreamBox(stream: stream, output: output)
     }
 
     private nonisolated static func scale(for frame: CGRect) -> Double {
@@ -173,16 +193,19 @@ public actor WindowStream {
 
 /// Small `SCStreamOutput` shim (delegate protocols are not actor-friendly).
 final class StreamOutput: NSObject, SCStreamOutput {
-    private let handler: (CVPixelBuffer) -> Void
-    init(handler: @escaping (CVPixelBuffer) -> Void) { self.handler = handler }
+    private let handler: @Sendable (WindowStream.PixelFrame) -> Void
+
+    init(handler: @escaping @Sendable (WindowStream.PixelFrame) -> Void) {
+        self.handler = handler
+    }
 
     func stream(_ stream: SCStream, didOutputSampleBuffer sampleBuffer: CMSampleBuffer,
                 of type: SCStreamOutputType) {
         guard type == .screen, sampleBuffer.isValid,
               let attachments = CMSampleBufferGetSampleAttachmentsArray(sampleBuffer, createIfNecessary: false) as? [[SCStreamFrameInfo: Any]],
               let status = attachments.first?[.status] as? Int,
-              status == SCFrameStatus.complete.rawValue else { return }
-        guard let buffer = CMSampleBufferGetImageBuffer(sampleBuffer) else { return }
-        handler(buffer)
+              status == SCFrameStatus.complete.rawValue,
+              let buffer = CMSampleBufferGetImageBuffer(sampleBuffer) else { return }
+        handler(WindowStream.PixelFrame(buffer: buffer))
     }
 }
