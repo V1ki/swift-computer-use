@@ -69,7 +69,8 @@ struct ServiceMain {
             if options.headless {
                 runHeadless(server: server, sessions: sessions)
             } else {
-                runApplication(server: server, sessions: sessions)
+                // main() 固定在主线程；把整个 AppKit 生命周期切到 MainActor。
+                MainActor.assumeIsolated { runApplication(server: server, sessions: sessions) }
             }
         } catch {
             FileHandle.standardError.write(Data("SwiftCUA service: \(error)\n".utf8))
@@ -95,14 +96,13 @@ struct ServiceMain {
         done.wait()
     }
 
+    @MainActor
     private static func runApplication(server: SocketServer, sessions: SessionStore) {
         let application = NSApplication.shared
         application.setActivationPolicy(.accessory)
-        let lifecycle = MainActor.assumeIsolated {
-            ServiceApplicationDelegate(server: server, sessions: sessions)
-        }
+        let lifecycle = ServiceApplicationDelegate(server: server, sessions: sessions)
         application.delegate = lifecycle
-        MainActor.assumeIsolated { lifecycle.start() }
+        lifecycle.start()
         withExtendedLifetime(lifecycle) { application.run() }
     }
 }
