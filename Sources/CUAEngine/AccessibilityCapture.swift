@@ -2,7 +2,10 @@ import Foundation
 import ApplicationServices
 import CUACore
 
-struct AXSnapshot {
+/// AXUIElement references are not Sendable, but the snapshot never leaves the
+/// engine actor; @unchecked is required for older Swift 6.x toolchains that
+/// still flag region-based isolation on actor-local values.
+struct AXSnapshot: @unchecked Sendable {
     var stamp: IndexStamp
     var elements: [Int: AXUIElement]
     var nodes: [CUAAccessibilityNode]
