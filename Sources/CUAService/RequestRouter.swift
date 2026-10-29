@@ -150,19 +150,6 @@ actor RequestRouter {
             try await gate.check(accessibility: true, screenRecording: value.useOCR ?? false)
             try Task.checkCancellation()
             return try CUACodec.jsonValue(ClickTextResult(match: try await engine.clickText(value)))
-        case .searchText, .openChat, .readChat, .sendText:
-            let value = try decode(ChatParams.self, params, method)
-            try await authorize(params, app: value.app)
-            try await gate.check(accessibility: true)
-            try Task.checkCancellation()
-            let result: ChatResult
-            switch method {
-            case .searchText: result = try await engine.searchText(value)
-            case .openChat: result = try await engine.openChat(value)
-            case .readChat: result = try await engine.readChat(value)
-            default: result = try await engine.sendText(value)
-            }
-            return try CUACodec.jsonValue(result)
         case .setOptions:
             let value = try decode(SetOptionsParams.self, params, method)
             await engine.setOptions(activate: value.activate ?? false)

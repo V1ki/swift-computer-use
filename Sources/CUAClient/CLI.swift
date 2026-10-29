@@ -7,7 +7,7 @@ struct CLIArguments {
     var options: [String: String] = [:]
     var flags: Set<String> = []
     static let booleanOptions: Set<String> = ["json", "windows", "no-screenshot", "no-text", "exact", "no-ocr", "ocr-only", "activate", "help", "version"]
-    static let valueOptions: Set<String> = ["socket", "timeout", "app", "query", "window", "screenshot-out", "out", "display", "element", "x", "y", "count", "button", "key", "duration-ms", "text", "direction", "pages", "value", "from-x", "from-y", "to-x", "to-y", "format", "prefix", "suffix", "selection", "action", "session", "limit", "name", "chat"]
+    static let valueOptions: Set<String> = ["socket", "timeout", "app", "query", "window", "screenshot-out", "out", "display", "element", "x", "y", "count", "button", "key", "duration-ms", "text", "direction", "pages", "value", "from-x", "from-y", "to-x", "to-y", "format", "prefix", "suffix", "selection", "action", "session", "limit"]
 
     init(_ arguments: [String]) throws {
         var index = 0
@@ -75,10 +75,6 @@ enum CUACommandLine {
       action --app ID --element N --action NAME
       find-text --app ID --text S [--exact] [--no-ocr] [--ocr-only] [--limit N]
       click-text --app ID --text S [--exact] [--no-ocr] [--ocr-only]
-      open-chat --app ID --name S [--limit N]   background only, verified target
-      read-chat --app ID --name S [--limit N]   read already-open exact chat
-      search-text --app ID --text S             background AX search
-      send --app ID --chat S --text S           self chats only, verified delivery
       call METHOD [JSON-PARAMS]     原始 JSON-RPC 调试透传
       session list                 本地 sessions/*.toml 清单
       doctor                       socket / ping / 权限 / 版本 checklist
@@ -136,22 +132,6 @@ enum CUACommandLine {
                                           params: .object(["activate": .bool(args.flags.contains("activate"))]))
             }
             switch command {
-            case "open-chat", "read-chat", "search-text", "send":
-                try args.allow(["app", "name", "chat", "text", "limit", "session"])
-                guard !args.flags.contains("activate") else { throw CLIArguments.invalid("Chat commands are background-only; --activate is forbidden") }
-                var fields: [String: JSONValue] = ["app": .string(try args.require("app"))]
-                if command == "send" { fields["chat"] = .string(try args.require("chat")); fields["text"] = .string(try args.require("text")) }
-                else if command == "search-text" { fields["text"] = .string(try args.require("text")) }
-                else { fields["name"] = .string(try args.require("name")) }
-                if let session = args.options["session"] { fields["sessionId"] = .string(session) }
-                if let raw = args.options["limit"] {
-                    guard let n = Int(raw), (1...100).contains(n) else { throw CLIArguments.invalid("--limit must be 1...100") }
-                    fields["limit"] = .int(n)
-                }
-                _ = try await client.send(method: "setOptions", params: .object(["activate": .bool(false)]))
-                let methods = ["open-chat": "openChat", "read-chat": "readChat", "search-text": "searchText", "send": "sendText"]
-                let result = try await client.send(method: methods[command]!, params: .object(fields))
-                print(try jsonText(result, pretty: !args.json))
             case "mcp":
                 try args.allow([])
                 await MCPServer(client: client).run()
@@ -199,9 +179,6 @@ enum CUACommandLine {
             return 0
         } catch {
             ClientDiagnostics.stderr(ClientDiagnostics.describe(error))
-            if let evidence = (error as? ClientError)?.data?["evidence"]?.arrayValue {
-                for item in evidence { if let line = item.stringValue { ClientDiagnostics.stderr(line) } }
-            }
             return 1
         }
     }

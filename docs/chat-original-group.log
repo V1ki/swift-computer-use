@@ -1,7 +1,0 @@
-front before: Google Chrome PID=1522
-main window: 微信 total AX windows: ["knight", "微信"]
-search found, value before: 零号
-front after: Google Chrome PID=1522
-AX windows now: ["knight[AXWindow]", "微信[AXWindow]"]
-new window: knight size children: 10
-  sample: ["knight", "knight", "发送", "11:40", "SwiftCUA cursor probe 2026-10-29T03:40:29Z", "SwiftCUA cursor probe 2026-10-29T03:41:32Z", "SwiftCUA background cursor verification", "11:46", "SwiftCUA background cursor verification"]

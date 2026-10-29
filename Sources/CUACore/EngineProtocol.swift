@@ -11,7 +11,7 @@ import Foundation
 ///   Subsequent element-targeted calls must resolve `elementIndex` against that
 ///   table and throw `.elementIndexStale` when the table is missing, or
 ///   `.elementNotFound` when the index is out of range.
-/// - Input methods default to background-only; chat APIs never activate.
+/// - Input methods activate the target app window unless a window id pins them.
 /// - Coordinate-based input is window-relative, matching the original client.
 public protocol CUAEngine: Sendable {
     /// Current privacy-permission state without prompting.
@@ -28,11 +28,6 @@ public protocol CUAEngine: Sendable {
 
     /// Captures screenshot and/or accessibility tree for one app.
     func getAppState(_ params: GetAppStateParams) async throws -> CUAAppState
-
-    func searchText(_ params: ChatParams) async throws -> ChatResult
-    func openChat(_ params: ChatParams) async throws -> ChatResult
-    func readChat(_ params: ChatParams) async throws -> ChatResult
-    func sendText(_ params: ChatParams) async throws -> ChatResult
 
     func click(_ params: ClickParams) async throws
     func pressKey(_ params: PressKeyParams) async throws
@@ -76,10 +71,6 @@ public extension CUAEngine {
 
 public extension CUAEngine {
     func setOptions(activate: Bool) async {}
-    func searchText(_ params: ChatParams) async throws -> ChatResult { throw CUAError(code: .unsupported, message: "searchText unsupported") }
-    func openChat(_ params: ChatParams) async throws -> ChatResult { throw CUAError(code: .unsupported, message: "openChat unsupported") }
-    func readChat(_ params: ChatParams) async throws -> ChatResult { throw CUAError(code: .unsupported, message: "readChat unsupported") }
-    func sendText(_ params: ChatParams) async throws -> ChatResult { throw CUAError(code: .unsupported, message: "sendText unsupported") }
 
     func findText(_ params: FindTextParams) async throws -> [CUATextMatch] {
         throw CUAError(code: .unsupported, message: "findText is not implemented by this engine")

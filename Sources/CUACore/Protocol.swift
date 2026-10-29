@@ -105,10 +105,6 @@ public enum CUAMethod: String, Codable, Sendable, CaseIterable {
     case captureScreenshot
     case findText
     case clickText
-    case searchText
-    case openChat
-    case readChat
-    case sendText
     case setOptions
     case endSession
 
