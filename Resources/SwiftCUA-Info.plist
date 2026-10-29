@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>CFBundleDevelopmentRegion</key>
+    <string>en</string>
+    <key>CFBundleExecutable</key>
+    <string>CUAService</string>
+    <key>CFBundleIdentifier</key>
+    <string>dev.v1ki.swiftcua</string>
+    <key>CFBundleInfoDictionaryVersion</key>
+    <string>6.0</string>
+    <key>CFBundleName</key>
+    <string>SwiftCUA</string>
+    <key>CFBundleDisplayName</key>
+    <string>SwiftCUA</string>
+    <key>CFBundlePackageType</key>
+    <string>APPL</string>
+    <key>CFBundleShortVersionString</key>
+    <string>__VERSION__</string>
+    <key>CFBundleVersion</key>
+    <string>__BUILD__</string>
+    <key>LSMinimumSystemVersion</key>
+    <string>14.0</string>
+    <key>LSUIElement</key>
+    <true/>
+    <key>NSHighResolutionCapable</key>
+    <true/>
+    <key>NSAppleEventsUsageDescription</key>
+    <string>SwiftCUA uses Apple Events to drive user-approved desktop applications on your behalf.</string>
+    <key>NSHumanReadableCopyright</key>
+    <string>SwiftCUA — an independent reimplementation of macOS computer-use tooling. Not affiliated with OpenAI.</string>
+</dict>
+</plist>

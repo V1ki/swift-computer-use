@@ -1,0 +1,25 @@
+# SwiftPM / builds
+.build/
+.build-*/
+build/
+*.xcodeproj
+.devhome/
+dist/
+
+# Node
+js/node_modules/
+*.tsbuildinfo
+
+# macOS
+.DS_Store
+._*
+
+# Reverse-engineering raw dumps: huge (hundreds of MB) and machine-specific.
+# Reports in re/*.md quote the relevant evidence; regenerate dumps with each
+# re/raw/*/run.sh script. Only small, hand-curated evidence is committed.
+re/raw/**
+!re/raw/*/run.sh
+!re/raw/*/*.py
+!re/raw/*/*.sh
+!re/raw/*/*.md
+!re/raw/*/*.json
